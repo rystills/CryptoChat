@@ -8,6 +8,9 @@ main:
 -establishing a secure channel
 -p2p messaging system
 
+debugging:
+-remove magic numbers from GUI layouting
+
 optional:
 -simple GUI (probably using WXPython)
 -frozen executable (at least for windows, maybe for other platforms)

@@ -1,8 +1,8 @@
 import wx, wx.lib.scrolledpanel
 #layouting constants
+#TODO: magic numbers
 winPadX = 16 #horizontal padding to fit content to window
 winPadY = 65 #vertical padding to fit content to window
-msgPadY = 8 #num vertical pixels between message strings
 
 class GUI(wx.Frame):
     def __init__(self,parent,id,title,screenWidth,screenHeight):
@@ -26,8 +26,9 @@ class GUI(wx.Frame):
         self.contentPanel.SetupScrolling(scroll_x=False)
         self.bSizer = wx.BoxSizer(wx.VERTICAL)
         #previous messages display field
-        self.messageLogString = wx.TextCtrl(self.contentPanel,size=(screenWidth-winPadX-1,screenHeight-menubarHeight*2-100-winPadY+12),style=wx.TE_MULTILINE | wx.TE_READONLY)
-        self.bSizer.Add(self.messageLogString, 0, wx.ALL, msgPadY) 
+        #TODO: magic number
+        self.messageLogString = wx.TextCtrl(self.contentPanel,size=(screenWidth-winPadX-1,screenHeight-menubarHeight*2-100-winPadY+28),style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.bSizer.Add(self.messageLogString, 0, wx.ALL, 0) 
         
         #message input field
         self.msgField = wx.TextCtrl(self.contentPanel,size=(screenWidth-winPadX-1,100),style= wx.TE_MULTILINE | wx.SUNKEN_BORDER)
@@ -45,7 +46,7 @@ class GUI(wx.Frame):
             self.msgField.SetValue("")
         
     def sendMessage(self,msg):
-        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*118+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
 
 if __name__=='__main__':
     app = wx.App()
