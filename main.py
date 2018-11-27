@@ -1,6 +1,8 @@
 import wx, wx.lib.scrolledpanel
+#layouting constants
 winPadX = 16 #horizontal padding to fit content to window
 winPadY = 65 #vertical padding to fit content to window
+msgPadY = 8 #num vertical pixels between message strings
 
 class GUI(wx.Frame):
     def __init__(self,parent,id,title,screenWidth,screenHeight):
@@ -23,9 +25,12 @@ class GUI(wx.Frame):
 
         #test scrollbar by adding a bunch of buttons   
         bSizer = wx.BoxSizer(wx.VERTICAL)
-        for i in range(8):
-            bSizer.Add(wx.Button(contentPanel,label="Button {0}".format(i+1),pos=(0,50*(i+1)),size=(50,50)), 0, wx.ALL, 5 ) 
+        for i in range(13):
+            bSizer.Add(wx.StaticText(contentPanel,label="La{0}bel {1}".format("\n" if i%2==0 else "", i+1)), 0, wx.ALL, msgPadY) 
         contentPanel.SetSizer(bSizer)
+        
+        #disable horizontal scrolling
+        contentPanel.SetupScrolling(scroll_x=False)
 
 if __name__=='__main__':
     app = wx.App()
