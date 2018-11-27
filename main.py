@@ -24,20 +24,19 @@ class GUI(wx.Frame):
         self.contentPanel.SetBackgroundColour('#FFFFFF')
         #disable horizontal scrolling
         self.contentPanel.SetupScrolling(scroll_x=False)
-        
-        #test scrollbar by adding a bunch of "message" strings
         self.bSizer = wx.BoxSizer(wx.VERTICAL)
-        self.messageLogString = wx.StaticText(self.contentPanel,label="")
+        #previous messages display field
+        self.messageLogString = wx.TextCtrl(self.contentPanel,size=(screenWidth-winPadX-1,screenHeight-menubarHeight*2-100-winPadY+12),style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.bSizer.Add(self.messageLogString, 0, wx.ALL, msgPadY) 
-        self.contentPanel.SetSizer(self.bSizer)
         
-        #TODO: this stuff should go in its own panel below
         #message input field
-        self.msgField = wx.TextCtrl(self.contentPanel,size=(screenWidth-2*winPadX-2,100),style= wx.TE_MULTILINE | wx.SUNKEN_BORDER)
+        self.msgField = wx.TextCtrl(self.contentPanel,size=(screenWidth-winPadX-1,100),style= wx.TE_MULTILINE | wx.SUNKEN_BORDER)
         self.bSizer.Add(self.msgField)
+        #message send button
         self.sendBtn = wx.Button(self.contentPanel,label="Send Message",size=(86,menubarHeight-2))
         self.sendBtn.Bind(wx.EVT_BUTTON,self.OnClicked)
         self.bSizer.Add(self.sendBtn,0,wx.ALL,0)
+        self.contentPanel.SetSizer(self.bSizer)
     
     def OnClicked(self, event): 
         btn = event.GetEventObject()
@@ -46,7 +45,7 @@ class GUI(wx.Frame):
             self.msgField.SetValue("")
         
     def sendMessage(self,msg):
-        self.messageLogString.Label = self.messageLogString.Label + "\n" + msg
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
 
 if __name__=='__main__':
     app = wx.App()
