@@ -8,6 +8,7 @@ class GUI(wx.Frame):
     def __init__(self,parent,id,title,screenWidth,screenHeight):
         #Create a fixed size frame
         wx.Frame.__init__(self,parent,id,title,size=(screenWidth,screenHeight), style=(wx.DEFAULT_FRAME_STYLE) ^ (wx.RESIZE_BORDER|wx.MAXIMIZE_BOX))
+        self.SetFont(wx.Font(9, wx.SWISS, wx.NORMAL, wx.NORMAL))
     
         #menubar panel
         menubarHeight = 28
@@ -34,7 +35,7 @@ class GUI(wx.Frame):
         self.msgField = wx.TextCtrl(self.contentPanel,size=(screenWidth-winPadX-1,100),style= wx.TE_MULTILINE | wx.SUNKEN_BORDER)
         self.bSizer.Add(self.msgField)
         #message send button
-        self.sendBtn = wx.Button(self.contentPanel,label="Send Message",size=(86,menubarHeight-2))
+        self.sendBtn = wx.Button(self.contentPanel,label="Send Message",size=(90,menubarHeight-2))
         self.sendBtn.Bind(wx.EVT_BUTTON,self.OnClicked)
         self.bSizer.Add(self.sendBtn,0,wx.ALL,0)
         self.contentPanel.SetSizer(self.bSizer)
@@ -46,7 +47,7 @@ class GUI(wx.Frame):
             self.msgField.SetValue("")
         
     def sendMessage(self,msg):
-        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*118+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
 
 if __name__=='__main__':
     app = wx.App()

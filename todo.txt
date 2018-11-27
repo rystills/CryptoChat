@@ -8,7 +8,7 @@ main:
 -establishing a secure channel
 -p2p messaging system
 
-debugging:
+misc:
 -remove magic numbers from GUI layouting
 
 optional:
