@@ -1,0 +1,14 @@
+ciphers:
+-upgrade Toy DES to SDES3
+-implement RSA
+-implement pallier
+
+main:
+-negotiation
+-establishing a secure channel
+-p2p messaging system
+
+optional:
+-simple GUI (probably using WXPython)
+-frozen executable (at least for windows, maybe for other platforms)
+-implement a KDC
