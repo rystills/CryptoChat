@@ -19,18 +19,34 @@ class GUI(wx.Frame):
         menubarPanel.SetSizer(menuSizer)
         
         #main window panel
-        contentPanel = wx.lib.scrolledpanel.ScrolledPanel(self,-1, size=(screenWidth-winPadX,screenHeight-winPadY), pos=(0,28), style=wx.SIMPLE_BORDER)
-        contentPanel.SetupScrolling()
-        contentPanel.SetBackgroundColour('#FFFFFF')
-
-        #test scrollbar by adding a bunch of buttons   
-        bSizer = wx.BoxSizer(wx.VERTICAL)
-        for i in range(13):
-            bSizer.Add(wx.StaticText(contentPanel,label="La{0}bel {1}".format("\n" if i%2==0 else "", i+1)), 0, wx.ALL, msgPadY) 
-        contentPanel.SetSizer(bSizer)
-        
+        self.contentPanel = wx.lib.scrolledpanel.ScrolledPanel(self,-1, size=(screenWidth-winPadX,screenHeight-winPadY), pos=(0,28), style=wx.SIMPLE_BORDER)
+        self.contentPanel.SetupScrolling()
+        self.contentPanel.SetBackgroundColour('#FFFFFF')
         #disable horizontal scrolling
-        contentPanel.SetupScrolling(scroll_x=False)
+        self.contentPanel.SetupScrolling(scroll_x=False)
+        
+        #test scrollbar by adding a bunch of "message" strings
+        self.bSizer = wx.BoxSizer(wx.VERTICAL)
+        self.messageLogString = wx.StaticText(self.contentPanel,label="")
+        self.bSizer.Add(self.messageLogString, 0, wx.ALL, msgPadY) 
+        self.contentPanel.SetSizer(self.bSizer)
+        
+        #TODO: this stuff should go in its own panel below
+        #message input field
+        self.msgField = wx.TextCtrl(self.contentPanel,size=(screenWidth-2*winPadX-2,100),style= wx.TE_MULTILINE | wx.SUNKEN_BORDER)
+        self.bSizer.Add(self.msgField)
+        self.sendBtn = wx.Button(self.contentPanel,label="Send Message",size=(86,menubarHeight-2))
+        self.sendBtn.Bind(wx.EVT_BUTTON,self.OnClicked)
+        self.bSizer.Add(self.sendBtn,0,wx.ALL,0)
+    
+    def OnClicked(self, event): 
+        btn = event.GetEventObject()
+        if (btn == self.sendBtn and self.msgField.GetValue() != ""):
+            self.sendMessage(self.msgField.GetValue())
+            self.msgField.SetValue("")
+        
+    def sendMessage(self,msg):
+        self.messageLogString.Label = self.messageLogString.Label + "\n" + msg
 
 if __name__=='__main__':
     app = wx.App()
