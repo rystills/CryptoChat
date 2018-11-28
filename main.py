@@ -3,8 +3,6 @@ import socket
 import threading
 import time
 import sys
-import os
-from html.parser import incomplete
 
 global frame
 #layouting constants
@@ -26,7 +24,18 @@ global outConn
 inConn = None
 outConn = None
 
+"""
+the GUI class defines all graphical components of our application, utilizing the WxPython library.
+"""
 class GUI(wx.Frame):
+    """
+    initialize the GUI, creating all graphical elements in vertical order
+    @param parent: the Wx Frame to which this Frame belongs (set to None for this Frame to act as the root)
+    @param id: a unique integer identifier for this Frame (set to -1 as we don't need to lookup this frame by id)
+    @param title: the window title for this frame
+    @param screenWidth: the desired width (in pixels) of the window
+    @param screenHeight: the desired height (in pixels) of the window
+    """
     def __init__(self,parent,id,title,screenWidth,screenHeight):
         #Create a fixed size frame
         wx.Frame.__init__(self,parent,id,title,size=(screenWidth,screenHeight), style=(wx.DEFAULT_FRAME_STYLE) ^ (wx.RESIZE_BORDER|wx.MAXIMIZE_BOX))
@@ -66,6 +75,10 @@ class GUI(wx.Frame):
         self.bSizer.Add(self.sendBtn,0,wx.ALL,0)
         self.contentPanel.SetSizer(self.bSizer)
             
+    """
+    button click handler for all buttons in our GUI
+    @param event: the event corresponding to this click; stores information about the object who triggered the event
+    """
     def OnClicked(self, event): 
         btn = event.GetEventObject()
         if (btn == self.sendBtn and self.msgField.GetValue() != ""):
@@ -74,29 +87,55 @@ class GUI(wx.Frame):
         if (btn == self.connectButton):
             connectToServer()
         if (btn == self.exitChatButton):
-            disconnect()
             frame.addCloseMessage()
+            disconnect()
         
+    """
+    scroll to the bottom of the chat history window; called any time the chat history is updated
+    """
     def scrollDown(self):
         self.messageLogString.ShowPosition(self.messageLogString.GetLastPosition())
         
+    """
+    send a message on whichever connection is currently open, and add the messsage to our chat history
+    @param msg: the string message (not yet utf-8 encoded) to send
+    """
     def sendMessage(self,msg):
+        if (not (inConn or outConn)):
+            #nobody to send the message to
+            return
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
         self.scrollDown()
         sendMessage(msg)
     
+    """
+    add the contents of a received message to the chat history box
+    @param msg: the utf-8 encoded string message we received
+    """
     def addReceivedMessage(self,msg):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nReceived: " if self.messageLogString.GetValue() != "" else "Received: ") + msg)
         self.scrollDown()
 
+    """
+    add a message indicating to the user that we have disconnected from a chat
+    """
     def addCloseMessage(self):
+        if (not (inConn or outConn)):
+            return
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nClosed Chat" if self.messageLogString.GetValue() != "" else "Closed Chat"))
         self.scrollDown()
     
+    """
+    add a message indicating to the user that we have connected to a chat
+    """
     def addOpenMessage(self):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nInitiated Chat" if self.messageLogString.GetValue() != "" else "Initiated Chat"))
         self.scrollDown()
 
+"""
+send a message on whichever connection is currently open
+@param msg: the string message (not yet utf-8 encoded) to send
+"""
 def sendMessage(msg):
     print("sending {0}".format(msg))
     if (inConn):
@@ -106,6 +145,9 @@ def sendMessage(msg):
         print("sending on outConn")
         outConn.send(msg.encode("utf-8"))
 
+"""
+attempt to connect to the currently specified ip and port
+"""
 def connectToServer():
     global outConn
     if (outConn or inConn):
@@ -115,7 +157,10 @@ def connectToServer():
     print("established outgoing connection")
     frame.addOpenMessage()
     outConn = outSock
-    
+   
+"""
+disconnect from the currently active chat, if one exists
+""" 
 def disconnect():
     global inConn
     global outConn
@@ -125,10 +170,10 @@ def disconnect():
         return
     
     if (inConn):
+        frame.addCloseMessage()
         inConn.close()
         inConn = None
         print("disconnected inConn")
-        frame.addCloseMessage()
 
     if (outConn):
         outConn.close()
@@ -136,6 +181,9 @@ def disconnect():
         outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print("disconnected outConn")
     
+"""
+daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
+"""
 def awaitMessages():
     global inConn
     global outConn
@@ -158,7 +206,10 @@ def awaitMessages():
         except:
             #received an error on conn recv - likely a disconnect was staged; disconnecting
             disconnect()
-        
+   
+"""
+daemon thread who listens for incoming connections, accepting them if we are not currently in a chat
+"""     
 def awaitConnections():
     inSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     inSock.bind((inIp, inPort))
@@ -177,7 +228,7 @@ def awaitConnections():
             frame.addOpenMessage()
             print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))            
 
-if __name__=='__main__':
+def main():
     if (len(sys.argv) > 1):
         inPort = int(sys.argv[1])
     if (len(sys.argv) > 2):
@@ -195,3 +246,6 @@ if __name__=='__main__':
     frame = GUI(parent=None, id=-1, title="CryptoChat",screenWidth = 640, screenHeight = 480)
     frame.Show()
     app.MainLoop()
+
+if __name__=='__main__':
+    main()
