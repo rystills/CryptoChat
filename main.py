@@ -87,7 +87,6 @@ class GUI(wx.Frame):
         if (btn == self.connectButton):
             connectToServer()
         if (btn == self.exitChatButton):
-            frame.addCloseMessage()
             disconnect()
         
     """
@@ -120,8 +119,6 @@ class GUI(wx.Frame):
     add a message indicating to the user that we have disconnected from a chat
     """
     def addCloseMessage(self):
-        if (not (inConn or outConn)):
-            return
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nClosed Chat" if self.messageLogString.GetValue() != "" else "Closed Chat"))
         self.scrollDown()
     
@@ -170,7 +167,6 @@ def disconnect():
         return
     
     if (inConn):
-        frame.addCloseMessage()
         inConn.close()
         inConn = None
         print("disconnected inConn")
@@ -180,6 +176,10 @@ def disconnect():
         outConn = None
         outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print("disconnected outConn")
+        
+    print(frame.messageLogString.GetValue()[-11:])
+    if (frame.messageLogString.GetValue()[-11:] != "Closed Chat"):
+        frame.addCloseMessage()
     
 """
 daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
@@ -188,6 +188,7 @@ def awaitMessages():
     global inConn
     global outConn
     while (True):
+        #avoid a busyloop by only checking if we're in a connection once every 100ms
         if (not (inConn or outConn)):
             time.sleep(.1)
             continue
@@ -216,6 +217,7 @@ def awaitConnections():
     inSock.listen(1)
     global inConn
     while (True):
+        #avoid a busyloop by only checking if we're in a connection once every 100ms
         if (inConn or outConn):
             time.sleep(.1)
             continue
@@ -228,7 +230,7 @@ def awaitConnections():
             frame.addOpenMessage()
             print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))            
 
-def main():
+if __name__=='__main__':
     if (len(sys.argv) > 1):
         inPort = int(sys.argv[1])
     if (len(sys.argv) > 2):
@@ -246,6 +248,3 @@ def main():
     frame = GUI(parent=None, id=-1, title="CryptoChat",screenWidth = 640, screenHeight = 480)
     frame.Show()
     app.MainLoop()
-
-if __name__=='__main__':
-    main()
