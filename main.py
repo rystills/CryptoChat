@@ -75,13 +75,27 @@ class GUI(wx.Frame):
             connectToServer()
         if (btn == self.exitChatButton):
             disconnect()
+            frame.addCloseMessage()
+        
+    def scrollDown(self):
+        self.messageLogString.ShowPosition(self.messageLogString.GetLastPosition())
         
     def sendMessage(self,msg):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
+        self.scrollDown()
         sendMessage(msg)
     
     def addReceivedMessage(self,msg):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nReceived: " if self.messageLogString.GetValue() != "" else "Received: ") + msg)
+        self.scrollDown()
+
+    def addCloseMessage(self):
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nClosed Chat" if self.messageLogString.GetValue() != "" else "Closed Chat"))
+        self.scrollDown()
+    
+    def addOpenMessage(self):
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nInitiated Chat" if self.messageLogString.GetValue() != "" else "Initiated Chat"))
+        self.scrollDown()
 
 def sendMessage(msg):
     print("sending {0}".format(msg))
@@ -99,6 +113,7 @@ def connectToServer():
         return
     outSock.connect((outIp, outPort))
     print("established outgoing connection")
+    frame.addOpenMessage()
     outConn = outSock
     
 def disconnect():
@@ -108,10 +123,13 @@ def disconnect():
     if (not (inConn or outConn)):
         #no connection from which to disconnect5
         return
+    
     if (inConn):
         inConn.close()
         inConn = None
         print("disconnected inConn")
+        frame.addCloseMessage()
+
     if (outConn):
         outConn.close()
         outConn = None
@@ -138,7 +156,7 @@ def awaitMessages():
                     outConn = None
             frame.addReceivedMessage(data.decode("utf-8"))
         except:
-            "received an error on conn recv - likely a disconnect was staged; disconnecting"
+            #received an error on conn recv - likely a disconnect was staged; disconnecting
             disconnect()
         
 def awaitConnections():
@@ -147,11 +165,17 @@ def awaitConnections():
     inSock.listen(1)
     global inConn
     while (True):
-        if (inConn):
+        if (inConn or outConn):
             time.sleep(.1)
             continue
         inConn, addr = inSock.accept()
-        print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))            
+        if (outConn):
+            #if we just received a connection but we're already chatting on outConn, drop the new connection immediately
+            inConn.close()
+            inConn = None
+        else:
+            frame.addOpenMessage()
+            print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))            
 
 if __name__=='__main__':
     if (len(sys.argv) > 1):
