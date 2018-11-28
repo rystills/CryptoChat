@@ -12,6 +12,5 @@ misc:
 -remove magic numbers from GUI layouting
 
 optional:
--simple GUI (probably using WXPython)
 -frozen executable (at least for windows, maybe for other platforms)
 -implement a KDC

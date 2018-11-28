@@ -4,6 +4,9 @@ import threading
 import time
 import sys
 
+global securingConnection
+securingConnection = False
+
 global frame
 #layouting constants
 #TODO: magic numbers
@@ -154,6 +157,7 @@ def connectToServer():
     print("established outgoing connection")
     frame.addOpenMessage()
     outConn = outSock
+    secureConnection(False)
    
 """
 disconnect from the currently active chat, if one exists
@@ -208,6 +212,24 @@ def awaitMessages():
             #received an error on conn recv - likely a disconnect was staged; disconnecting
             disconnect()
    
+def secureConnection(amServer):
+    global securingConnection
+    securingConnection = True
+    print("securing connection as {0}".format("server" if amServer else "client"))
+    secureConnectionThread = threading.Thread(target=secureConnectionServer if amServer else secureConnectionClient, args=())
+    secureConnectionThread.setDaemon(True)
+    secureConnectionThread.start()
+    
+def secureConnectionServer():
+    #TODO: secure connection as server
+    print("server secured connection")
+    securingConnection = False
+    
+def secureConnectionClient():
+    #TODO: secure connection as client
+    print("client secured connection")
+    securingConnection = False
+    
 """
 daemon thread who listens for incoming connections, accepting them if we are not currently in a chat
 """     
@@ -228,7 +250,8 @@ def awaitConnections():
             inConn = None
         else:
             frame.addOpenMessage()
-            print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))            
+            print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))     
+            secureConnection(True)
 
 if __name__=='__main__':
     if (len(sys.argv) > 1):
