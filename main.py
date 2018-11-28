@@ -3,6 +3,10 @@ import socket
 import threading
 import time
 import sys
+import cryptoutil
+sys.path.insert(0, 'DES/'); import DES
+sys.path.insert(0, 'NS_DH/'); import NS_DH
+sys.path.insert(0, 'BG/'); import BG
 
 global securingConnection
 securingConnection = False
@@ -140,10 +144,32 @@ def sendMessage(msg):
     print("sending {0}".format(msg))
     if (inConn):
         print("sending on inConn")
-        inConn.send(msg.encode("utf-8"))
+        inConn.send(encryptMsg(msg).encode("utf-8"))
     elif (outConn):
         print("sending on outConn")
-        outConn.send(msg.encode("utf-8"))
+        outConn.send(encryptMsg(msg).encode("utf-8"))
+
+"""
+encrypt a msg using the current selected encryption algorithm
+@param msg: the message to encrypt
+@returns the encrypted message
+"""
+def encryptMsg(msg):
+    #TODO: hard-coded to DES atm for testing
+    encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
+    print("encrypting: {0} becomes: {1}".format(msg,encrypted))
+    return encrypted
+
+"""
+decrypt a msg using the current selected encryption algorithm
+@param msg: the message to decrypt
+@returns the decrypted message
+""" 
+def decryptMsg(msg):
+    #TODO: hard-coded to DES atm for testing
+    decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
+    print("decrypting: {0} becomes: {1}".format(msg,decrypted))
+    return decrypted
 
 """
 attempt to connect to the currently specified ip and port
@@ -181,7 +207,6 @@ def disconnect():
         outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print("disconnected outConn")
         
-    print(frame.messageLogString.GetValue()[-11:])
     if (frame.messageLogString.GetValue()[-11:] != "Closed Chat"):
         frame.addCloseMessage()
     
@@ -207,11 +232,15 @@ def awaitMessages():
                 else:
                     outConn.close()
                     outConn = None
-            frame.addReceivedMessage(data.decode("utf-8"))
+            frame.addReceivedMessage(decryptMsg(data.decode("utf-8")))
         except:
             #received an error on conn recv - likely a disconnect was staged; disconnecting
             disconnect()
    
+"""
+secure the current connection, negotiating and establishing a secure channel. Must complete before chat messages may be sent/recvd.
+@param amServer: whether we are acting as the server (true) or the client (false) in this instance
+"""
 def secureConnection(amServer):
     global securingConnection
     securingConnection = True
@@ -220,11 +249,17 @@ def secureConnection(amServer):
     secureConnectionThread.setDaemon(True)
     secureConnectionThread.start()
     
+"""
+daemon thread who runs through securing the connection as the server
+"""
 def secureConnectionServer():
     #TODO: secure connection as server
     print("server secured connection")
     securingConnection = False
-    
+   
+"""
+daemon thread who runs through securing the connection as the client
+""" 
 def secureConnectionClient():
     #TODO: secure connection as client
     print("client secured connection")

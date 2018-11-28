@@ -1,44 +1,7 @@
+import cryptoutil
+
 #provide some default key; feel free to change this, as long as it remains 10 bits
 defaultKey = [1,1,1,0,0,0,1,1,1,0]
-
-#utility method from https://stackoverflow.com/questions/10237926/convert-string-to-list-of-bits-and-viceversa
-"""
-convert a string to a list of bits
-@param s: the string to convert
-@return: the bit list equivalent of s
-"""
-def tobits(s):
-    result = []
-    for c in s:
-        bits = bin(ord(c))[2:]
-        bits = '00000000'[len(bits):] + bits
-        result.extend([int(b) for b in bits])
-    return result
-
-#utility method from https://stackoverflow.com/questions/10237926/convert-string-to-list-of-bits-and-viceversa
-"""
-convert a list of bits to a string
-@param bits: the list of bits to convert
-@return: the string equivalent of bits
-"""
-def frombits(bits):
-    chars = []
-    for b in range(len(bits) // 8):
-        byte = bits[b*8:(b+1)*8]
-        chars.append(chr(int(''.join([str(bit) for bit in byte]), 2)))
-    return ''.join(chars)
-
-"""
-create a new list of bits containing the result of an exclusive or on the input lists
-@param l1: the first list
-@param l2: the second list
-@return: the result of an exclusive or on l1 and l2
-"""
-def xor(l1,l2):
-    newList = []
-    for i in range(len(l1)):
-        newList.append(1 if (l1[i] == 1 or l2[i] == 1) and (l1[i] != l2[i]) else 0)
-    return newList
 
 """
 external input method for toy DES decryption
@@ -95,7 +58,7 @@ def DES(bits,key, encrypting = True):
             expandedBits[i] = bitArr[FExpandPermutation[i]-1]
             
         #2. xor with key
-        xorbits = xor(expandedBits,keyArr)
+        xorbits = cryptoutil.xor(expandedBits,keyArr)
         
         #3. split xor list into 2 4-bit lists
         xorlbits = xorbits[:4]
@@ -154,10 +117,10 @@ def DES(bits,key, encrypting = True):
         k2[i] = lkey[KeyPermutation8Bit[i]-1] if KeyPermutation8Bit[i]-1 < 5 else rkey[KeyPermutation8Bit[i]-1-5]
         
     #9. call F with k1, then xor with lbits
-    Fval1 = xor(F(rbits,k1 if encrypting else k2),lbits)
+    Fval1 = cryptoutil.xor(F(rbits,k1 if encrypting else k2),lbits)
     
     #10. call F with k2, then xor with rbits
-    Fval2 = xor(F(Fval1,k2 if encrypting else k1),rbits)
+    Fval2 = cryptoutil.xor(F(Fval1,k2 if encrypting else k1),rbits)
     
     #11. apply inverse initial permutation on the concatenation of our second result with our first result
     bitsFinal = [0,0,0,0,0,0,0,0]
