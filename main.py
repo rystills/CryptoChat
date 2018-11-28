@@ -2,8 +2,9 @@ import wx, wx.lib.scrolledpanel
 import socket
 import threading
 import time
+import sys
 
-global app
+global frame
 #layouting constants
 #TODO: magic numbers
 winPadX = 16 #horizontal padding to fit content to window
@@ -14,9 +15,11 @@ BUFFER_SIZE = 4096
 #TODO: set ip and port in GUI
 inIp = '127.0.0.1'
 outIp = '127.0.0.1'
-outPort = 5004
-inPort = 5005
+outPort = 5005
+inPort = 5004
 outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+global inConn
+global outConn
 inConn = None
 outConn = None
 
@@ -73,7 +76,7 @@ class GUI(wx.Frame):
         sendMessage(msg)
     
     def addReceivedMessage(self,msg):
-        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nReceived: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nReceived: " if self.messageLogString.GetValue() != "" else "Received: ") + msg)
 
 def sendMessage(msg):
     print("sending {0}".format(msg))
@@ -85,27 +88,52 @@ def sendMessage(msg):
         outConn.send(msg.encode("utf-8"))
 
 def connectToServer():
+    global outConn
     outSock.connect((outIp, outPort))
     print("established outgoing connection")
     outConn = outSock
     
+def awaitMessages():
+    global inConn
+    global outConn
+    while (True):
+        if (not (inConn or outConn)):
+            time.sleep(.1)
+            continue
+        print("awaiting inConn data")
+        data = inConn.recv(BUFFER_SIZE) if inConn else outConn.recv(BUFFER_SIZE)
+        print("data packet is: {0}".format(data))
+        if (not data):
+            if (inConn):
+                inConn.close()
+                inConn = None
+            else:
+                outConn.close()
+                outConn = None
+        frame.addReceivedMessage(data.decode("utf-8"))
+        
 def awaitConnections():
     inSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     inSock.bind((inIp, inPort))
     inSock.listen(1)
     global inConn
     while (True):
+        if (inConn):
+            time.sleep(.1)
+            continue
         inConn, addr = inSock.accept()
-        print("accepted incoming connection from from {0}:{1}".format(inConn,addr))
-        while(True):
-            data = inConn.recv(BUFFER_SIZE)
-            if (not data):
-                break
-            app.addReceivedMessage(data.decode("utf-8"))
+        print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))            
 
 if __name__=='__main__':
-    global app
+    if (len(sys.argv) > 1):
+        inPort = int(sys.argv[1])
+    if (len(sys.argv) > 2):
+        outPort = int(sys.argv[2])
+    print("initializing with inPort {0} outPort {1}".format(inPort,outPort))
+        
+    global frame
     threading.Thread(target=awaitConnections, args=()).start()
+    threading.Thread(target=awaitMessages, args=()).start()
     app = wx.App()
     frame = GUI(parent=None, id=-1, title="CryptoChat",screenWidth = 640, screenHeight = 480)
     frame.Show()
