@@ -1,4 +1,4 @@
-import math
+import math, secrets
 
 """apply Blum Goldwasser Probabilistic Algorithm (encryption) to the specified message
 @param m: the message to encrypt
@@ -7,7 +7,10 @@ import math
 @param x0: random seed 
 @returns: the result of encrypting the specified message with the specified parameters using the Blum Goldwasser algorithm
 """
-def BGPEnc(m,p=499,q=547,x0=159201):
+def BGPEnc(m,p=499,q=547,x0=1):
+    #choose a cryptographically secure random number with 6 bits of value > 1
+    while (x0 <= 1):
+        x0 = secrets.randbits(6)
     #calculations just following the algorithm
     n=p*q
     k = int(math.log(n,2))
