@@ -3,6 +3,8 @@ import socket
 import threading
 import time
 import sys
+import os
+from html.parser import incomplete
 
 global frame
 #layouting constants
@@ -17,6 +19,7 @@ inIp = '127.0.0.1'
 outIp = '127.0.0.1'
 outPort = 5005
 inPort = 5004
+global outSock
 outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 global inConn
 global outConn
@@ -62,7 +65,7 @@ class GUI(wx.Frame):
         self.sendBtn.Bind(wx.EVT_BUTTON,self.OnClicked)
         self.bSizer.Add(self.sendBtn,0,wx.ALL,0)
         self.contentPanel.SetSizer(self.bSizer)
-    
+            
     def OnClicked(self, event): 
         btn = event.GetEventObject()
         if (btn == self.sendBtn and self.msgField.GetValue() != ""):
@@ -70,6 +73,8 @@ class GUI(wx.Frame):
             self.msgField.SetValue("")
         if (btn == self.connectButton):
             connectToServer()
+        if (btn == self.exitChatButton):
+            disconnect()
         
     def sendMessage(self,msg):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
@@ -89,9 +94,29 @@ def sendMessage(msg):
 
 def connectToServer():
     global outConn
+    if (outConn or inConn):
+        print("Error: already engaged in a chat; please disconnect before establishing a new connection")
+        return
     outSock.connect((outIp, outPort))
     print("established outgoing connection")
     outConn = outSock
+    
+def disconnect():
+    global inConn
+    global outConn
+    global outSock
+    if (not (inConn or outConn)):
+        #no connection from which to disconnect5
+        return
+    if (inConn):
+        inConn.close()
+        inConn = None
+        print("disconnected inConn")
+    if (outConn):
+        outConn.close()
+        outConn = None
+        outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("disconnected outConn")
     
 def awaitMessages():
     global inConn
@@ -100,17 +125,21 @@ def awaitMessages():
         if (not (inConn or outConn)):
             time.sleep(.1)
             continue
-        print("awaiting inConn data")
-        data = inConn.recv(BUFFER_SIZE) if inConn else outConn.recv(BUFFER_SIZE)
-        print("data packet is: {0}".format(data))
-        if (not data):
-            if (inConn):
-                inConn.close()
-                inConn = None
-            else:
-                outConn.close()
-                outConn = None
-        frame.addReceivedMessage(data.decode("utf-8"))
+        print("awaiting {0} data".format("inConn" if inConn else "outConn"))
+        try:
+            data = inConn.recv(BUFFER_SIZE) if inConn else outConn.recv(BUFFER_SIZE)
+            print("data packet received is: {0}".format(data))
+            if (not data):
+                if (inConn):
+                    inConn.close()
+                    inConn = None
+                else:
+                    outConn.close()
+                    outConn = None
+            frame.addReceivedMessage(data.decode("utf-8"))
+        except:
+            "received an error on conn recv - likely a disconnect was staged; disconnecting"
+            disconnect()
         
 def awaitConnections():
     inSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,8 +161,12 @@ if __name__=='__main__':
     print("initializing with inPort {0} outPort {1}".format(inPort,outPort))
         
     global frame
-    threading.Thread(target=awaitConnections, args=()).start()
-    threading.Thread(target=awaitMessages, args=()).start()
+    inConnThread = threading.Thread(target=awaitConnections, args=())
+    inMsgThread = threading.Thread(target=awaitMessages, args=())
+    inConnThread.setDaemon(True)
+    inMsgThread.setDaemon(True)
+    inConnThread.start()
+    inMsgThread.start()
     app = wx.App()
     frame = GUI(parent=None, id=-1, title="CryptoChat",screenWidth = 640, screenHeight = 480)
     frame.Show()

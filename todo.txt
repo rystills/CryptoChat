@@ -10,8 +10,6 @@ main:
 
 misc:
 -remove magic numbers from GUI layouting
--close threads on wx exit
--error checking for creating a connection while already connected
 
 optional:
 -simple GUI (probably using WXPython)
