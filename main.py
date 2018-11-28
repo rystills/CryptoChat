@@ -1,8 +1,24 @@
 import wx, wx.lib.scrolledpanel
+import socket
+import threading
+import time
+
+global app
 #layouting constants
 #TODO: magic numbers
 winPadX = 16 #horizontal padding to fit content to window
 winPadY = 65 #vertical padding to fit content to window
+
+#networking vars
+BUFFER_SIZE = 4096
+#TODO: set ip and port in GUI
+inIp = '127.0.0.1'
+outIp = '127.0.0.1'
+outPort = 5004
+inPort = 5005
+outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+inConn = None
+outConn = None
 
 class GUI(wx.Frame):
     def __init__(self,parent,id,title,screenWidth,screenHeight):
@@ -15,8 +31,12 @@ class GUI(wx.Frame):
         menubarPanel = wx.Panel(self,size=(screenWidth-winPadX,menubarHeight), pos=(0,0), style=wx.SIMPLE_BORDER)
         menubarPanel.SetBackgroundColour('#EEEEEE')
         menuSizer = wx.BoxSizer(wx.HORIZONTAL)
-        menuSizer.Add(wx.Button(menubarPanel,label="Start a New Chat",pos=(0,0),size=(100,menubarHeight-2)), 0, wx.ALL, 5 )
-        menuSizer.Add(wx.Button(menubarPanel,label="Exit Current Chat",pos=(99,0),size=(100,menubarHeight-2)), 0, wx.ALL, 5 ) 
+        self.connectButton = wx.Button(menubarPanel,label="Start a New Chat",pos=(0,0),size=(100,menubarHeight-2))
+        self.connectButton.Bind(wx.EVT_BUTTON,self.OnClicked)
+        menuSizer.Add(self.connectButton, 0, wx.ALL, 5 )
+        self.exitChatButton = wx.Button(menubarPanel,label="Exit Current Chat",pos=(99,0),size=(100,menubarHeight-2))
+        self.exitChatButton.Bind(wx.EVT_BUTTON,self.OnClicked)
+        menuSizer.Add(self.exitChatButton, 0, wx.ALL, 5 ) 
         menubarPanel.SetSizer(menuSizer)
         
         #main window panel
@@ -45,11 +65,47 @@ class GUI(wx.Frame):
         if (btn == self.sendBtn and self.msgField.GetValue() != ""):
             self.sendMessage(self.msgField.GetValue())
             self.msgField.SetValue("")
+        if (btn == self.connectButton):
+            connectToServer()
         
     def sendMessage(self,msg):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
+        sendMessage(msg)
+    
+    def addReceivedMessage(self,msg):
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nReceived: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
+
+def sendMessage(msg):
+    print("sending {0}".format(msg))
+    if (inConn):
+        print("sending on inConn")
+        inConn.send(msg.encode("utf-8"))
+    elif (outConn):
+        print("sending on outConn")
+        outConn.send(msg.encode("utf-8"))
+
+def connectToServer():
+    outSock.connect((outIp, outPort))
+    print("established outgoing connection")
+    outConn = outSock
+    
+def awaitConnections():
+    inSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    inSock.bind((inIp, inPort))
+    inSock.listen(1)
+    global inConn
+    while (True):
+        inConn, addr = inSock.accept()
+        print("accepted incoming connection from from {0}:{1}".format(inConn,addr))
+        while(True):
+            data = inConn.recv(BUFFER_SIZE)
+            if (not data):
+                break
+            app.addReceivedMessage(data.decode("utf-8"))
 
 if __name__=='__main__':
+    global app
+    threading.Thread(target=awaitConnections, args=()).start()
     app = wx.App()
     frame = GUI(parent=None, id=-1, title="CryptoChat",screenWidth = 640, screenHeight = 480)
     frame.Show()
