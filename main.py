@@ -4,9 +4,11 @@ import threading
 import time
 import sys
 import cryptoutil
+from wx.lib.agw.persist.persist_handlers import MenuBarHandler
 sys.path.insert(0, 'DES/'); import DES
 sys.path.insert(0, 'NS_DH/'); import NS_DH
 sys.path.insert(0, 'BG/'); import BG
+sys.path.insert(0, 'Paillier/'); import Paillier
 import json
 encoder = json.JSONEncoder()
 decoder = json.JSONDecoder()
@@ -88,6 +90,11 @@ class GUI(wx.Frame):
         self.sendBtn.Bind(wx.EVT_BUTTON,self.OnClicked)
         self.bSizer.Add(self.sendBtn,0,wx.ALL,0)
         self.contentPanel.SetSizer(self.bSizer)
+        
+        #draw hacker skull and crossbones
+        skull = wx.Bitmap('skull.png', wx.BITMAP_TYPE_PNG)
+        control = wx.StaticBitmap(self, -1, skull)
+        control.SetPosition((90,screenHeight-winPadY+1))
             
     """
     button click handler for all buttons in our GUI

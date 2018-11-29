@@ -6,7 +6,6 @@ ciphers:
 main:
 -negotiation
 -establishing a secure channel
--p2p messaging system
 
 misc:
 -remove magic numbers from GUI layouting
