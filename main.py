@@ -7,6 +7,9 @@ import cryptoutil
 sys.path.insert(0, 'DES/'); import DES
 sys.path.insert(0, 'NS_DH/'); import NS_DH
 sys.path.insert(0, 'BG/'); import BG
+import json
+encoder = json.JSONEncoder()
+decoder = json.JSONDecoder()
 
 global securingConnection
 securingConnection = False
@@ -30,6 +33,10 @@ global inConn
 global outConn
 inConn = None
 outConn = None
+
+#preferences
+global encryptionMode
+encryptionMode = "BG"
 
 """
 the GUI class defines all graphical components of our application, utilizing the WxPython library.
@@ -155,8 +162,12 @@ encrypt a msg using the current selected encryption algorithm
 @returns the encrypted message
 """
 def encryptMsg(msg):
-    #TODO: hard-coded to DES atm for testing
-    encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
+    if (encryptionMode == "DES"):
+        encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
+    elif (encryptionMode == "BG"):
+        bits,x = BG.BGPEnc(cryptoutil.tobits(msg))
+        #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
+        encrypted = encoder.encode((cryptoutil.frombits(bits),x))
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -166,8 +177,11 @@ decrypt a msg using the current selected encryption algorithm
 @returns the decrypted message
 """ 
 def decryptMsg(msg):
-    #TODO: hard-coded to DES atm for testing
-    decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
+    if (encryptionMode == "DES"):
+        decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
+    elif (encryptionMode == "BG"):
+        bitsStr,x = decoder.decode(msg)
+        decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x))
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
     return decrypted
 
