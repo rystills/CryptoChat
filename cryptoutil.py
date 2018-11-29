@@ -36,3 +36,17 @@ def xor(l1,l2):
     for i in range(len(l1)):
         newList.append(1 if (l1[i] == 1 or l2[i] == 1) and (l1[i] != l2[i]) else 0)
     return newList
+
+"""
+calculate the modular inverse of a and m
+@param a: first value for which we wish to calculate the modular inverse
+@param m: second value for which we wish to calculate the modular inverse
+@returns: the modular inverse of a and m
+"""
+def modInv(a, m):
+    def egcd(a, b):
+        if a == 0:
+            return (b, 0, 1)
+        g, y, x = egcd(b % a, a)
+        return (g, x - (b // a) * y, y)
+    return egcd(a, m)[1] % m

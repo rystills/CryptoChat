@@ -1,7 +1,5 @@
 import random
 
-k = 100
-
 """miller-robin primality check
 @param n: the number to test for primality
 @returns: whether the miller-robin primality check yielded true or false
@@ -44,6 +42,7 @@ def millerRobin(n):
       
         #return composite
         return False
+    k = 100
     
     #1. base case: small #'s
     if (n <= 3):
@@ -97,6 +96,17 @@ def pollardRho(n,secondTry = False):
         #if this is our first attempt, try again with x=y=3; otherwise, there's nothing more we can do
         return None if secondTry else pollardRho(n,True)
     return d
+
+"""
+generate a random prime of bits number of bits
+@param bits: number of bits in the desired prime
+@returns: a prime with bits number of bits
+"""
+def generatePrime(bits):
+    while True:
+        p = random.randrange(2 ** (bits-1) + 1, 2 ** bits) | 1
+        if millerRobin(p):
+            return p
 
 def main():
     for i in [31531, 520482, 485827, 15485863]:
