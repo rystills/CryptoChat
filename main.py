@@ -3,6 +3,7 @@ import socket
 import threading
 import time
 import sys
+import types
 import cryptoutil
 from wx.lib.agw.persist.persist_handlers import MenuBarHandler
 sys.path.insert(0, 'DES/'); import DES
@@ -35,6 +36,12 @@ global inConn
 global outConn
 inConn = None
 outConn = None
+
+#stubbed privKey/pubKey
+#privKey,pubKey = Paillier.generate_keypair()
+privKey = types.SimpleNamespace(l=139358136400596210796101638829470824320, m=77579141096015302651837419351184213921) 
+pubKey = types.SimpleNamespace(n=139358136400596210820028512420294596809, nsq=19420690181047178617561734038854936171810222360568237602495984522839872982481)
+
 
 #preferences
 global encryptionMode
@@ -175,6 +182,8 @@ def encryptMsg(msg):
         bits,x = BG.BGPEnc(cryptoutil.tobits(msg))
         #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
         encrypted = encoder.encode((cryptoutil.frombits(bits),x))
+    elif (encryptionMode == "Paillier"):
+        encrypted = str(Paillier.encrypt(pubKey,cryptoutil.strToAsciiInt(msg)))
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -189,6 +198,8 @@ def decryptMsg(msg):
     elif (encryptionMode == "BG"):
         bitsStr,x = decoder.decode(msg)
         decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x))
+    elif (encryptionMode == "Paillier"):
+        decrypted = cryptoutil.asciiIntToStr(Paillier.decrypt(privKey,pubKey,int(msg)))
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
     return decrypted
 

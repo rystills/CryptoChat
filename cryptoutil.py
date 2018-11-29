@@ -38,6 +38,30 @@ def xor(l1,l2):
     return newList
 
 """
+convert a string ins to an int containing the combination of the ascii values of all chars in ins
+@param ins: the input string to convert to an int
+@returns: the int containing the combination of ascii values of all chars in ins
+"""
+def strToAsciiInt(ins):
+    ai = ""
+    for s in ins:
+        ns = str(ord(s))
+        ai += "0"*(3-len(ns))+ns
+    return int(ai)
+    
+"""
+convert an int containing a combination of ascii values back into a string
+@param ai: the input ascii int to convert to a string
+@returns: the string represented bu the combination of ascii values in ai
+"""
+def asciiIntToStr(ai):
+    msg = "0"*(3-(len(str(ai))%3 if len(str(ai))%3 != 0 else 3))+str(ai)
+    s = ""
+    for i in range(0,len(msg),3):
+        s+=chr(int(msg[i:i+3]))
+    return s
+
+"""
 calculate the modular inverse of a and m
 @param a: first value for which we wish to calculate the modular inverse
 @param m: second value for which we wish to calculate the modular inverse
@@ -50,3 +74,13 @@ def modInv(a, m):
         g, y, x = egcd(b % a, a)
         return (g, x - (b // a) * y, y)
     return egcd(a, m)[1] % m
+
+def main():
+    a = "test string"
+    b = strToAsciiInt(a)
+    c = asciiIntToStr(b)
+    print(a,b,c)
+    
+
+if __name__ == "__main__":
+    main()
