@@ -1,13 +1,13 @@
 ciphers:
--upgrade Toy DES to SDES3
--implement RSA
--implement pallier
+-upgrade Toy DES to SDES3 (alt; implement AES)
+-use HMAC + SHA1
 
 main:
 -negotiation
 -establishing a secure channel
 
 misc:
+-move GUI to its own file
 -remove magic numbers from GUI layouting
 
 optional:
