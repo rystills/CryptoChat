@@ -65,6 +65,7 @@ def decryptMsg(msg):
 
 """
 attempt to connect to the currently specified ip and port
+@returns: whether or not we initiated a new connection
 """
 def connectToServer():
     if (net.outConn or net.inConn):
@@ -78,6 +79,7 @@ def connectToServer():
    
 """
 disconnect from the currently active chat, if one exists
+@returns: whether or not we disconnected from a connection
 """ 
 def disconnect():
     if (not (net.inConn or net.outConn)):
@@ -93,34 +95,8 @@ def disconnect():
         net.outConn.close()
         net.outConn = None
         net.outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("disconnected net.outConn")
-        
+        print("disconnected net.outConn")  
     return True
-    
-"""
-daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
-"""
-def awaitMessages():
-    while (True):
-        #avoid a busyloop by only checking if we're in a connection once every 100ms
-        time.sleep(.1)
-        if (net.inConn or net.outConn):
-            print("awaiting {0} data".format("net.inConn" if net.inConn else "net.outConn"))
-            try:
-                data = net.inConn.recv(net.BUFFER_SIZE) if net.inConn else net.outConn.recv(net.BUFFER_SIZE)
-                print("data packet received is: {0}".format(data))
-                if (not data):
-                    if (net.inConn):
-                        net.inConn.close()
-                        net.inConn = None
-                    else:
-                        net.outConn.close()
-                        net.outConn = None
-                net.gui.addReceivedMessage(decryptMsg(data.decode("utf-8")))
-            except:
-                #received an error on conn recv - likely a disconnect was staged; disconnecting
-                if (disconnect()):
-                    net.gui.addCloseMessage()
    
 """
 secure the current connection, negotiating and establishing a secure channel. Must complete before chat messages may be sent/recvd.
@@ -139,7 +115,7 @@ daemon thread who runs through securing the connection as the server
 def secureConnectionServer():
     #TODO: secure connection as server
     print("server secured connection")
-    net.securingConnection = False
+    #net.securingConnection = False
    
 """
 daemon thread who runs through securing the connection as the client
@@ -147,7 +123,32 @@ daemon thread who runs through securing the connection as the client
 def secureConnectionClient():
     #TODO: secure connection as client
     print("client secured connection")
-    net.securingConnection = False
+    #net.securingConnection = False
+    
+"""
+daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
+"""
+def awaitMessages():
+    while (True):
+        #avoid a busyloop by only checking if we're in an established connection once every 100ms
+        time.sleep(.1)
+        if ((not net.securingConnection) and (net.inConn or net.outConn)):
+            print("awaiting {0} data".format("net.inConn" if net.inConn else "net.outConn"))
+            try:
+                data = net.inConn.recv(net.BUFFER_SIZE) if net.inConn else net.outConn.recv(net.BUFFER_SIZE)
+                print("data packet received is: {0}".format(data))
+                if (not data):
+                    if (net.inConn):
+                        net.inConn.close()
+                        net.inConn = None
+                    else:
+                        net.outConn.close()
+                        net.outConn = None
+                net.gui.addReceivedMessage(decryptMsg(data.decode("utf-8")))
+            except:
+                #received an error on conn recv - likely a disconnect was staged; disconnecting
+                if (disconnect()):
+                    net.gui.addCloseMessage()
     
 """
 daemon thread who listens for incoming connections, accepting them if we are not currently in a chat

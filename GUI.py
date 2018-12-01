@@ -74,6 +74,7 @@ class GUI(wx.Frame):
             self.msgField.SetValue("")
         if (btn == self.connectButton):
             if (main.connectToServer()):
+                #TODO: move this message to after the connection is secured
                 self.addOpenMessage()
         if (btn == self.exitChatButton):
             if (main.disconnect()):
@@ -90,7 +91,7 @@ class GUI(wx.Frame):
     @param msg: the string message (not yet utf-8 encoded) to send
     """
     def sendMessage(self,msg):
-        if (not (net.inConn or net.outConn)):
+        if ((net.securingConnection) or not (net.inConn or net.outConn)):
             #nobody to send the message to
             return
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
@@ -98,11 +99,18 @@ class GUI(wx.Frame):
         main.sendMessage(msg)
     
     """
+    return the correct newline string (clears the screen with -'s unless this is our first message)\
+    @returns: the correct newline string
+    """
+    def newlineStr(self):
+        return "\n"+'-'*148 if self.messageLogString.GetValue() != "" else ""
+    
+    """
     add the contents of a received message to the chat history box
     @param msg: the utf-8 encoded string message we received
     """
     def addReceivedMessage(self,msg):
-        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nReceived: " if self.messageLogString.GetValue() != "" else "Received: ") + msg)
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + self.newlineStr() + "\nReceived: " + msg)
         self.scrollDown()
 
     """
@@ -110,14 +118,14 @@ class GUI(wx.Frame):
     """
     def addCloseMessage(self):
         if (self.messageLogString.GetValue()[-11:] != "Closed Chat"):
-            self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nClosed Chat" if self.messageLogString.GetValue() != "" else "Closed Chat"))
+            self.messageLogString.SetValue(self.messageLogString.GetValue() + self.newlineStr() + "Closed Chat")
             self.scrollDown()
     
     """
     add a message indicating to the user that we have connected to a chat
     """
     def addOpenMessage(self):
-        self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nInitiated Chat" if self.messageLogString.GetValue() != "" else "Initiated Chat"))
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + self.newlineStr() + "Initiated Chat; negotiating...")
         self.scrollDown()
         
 def start():
@@ -126,4 +134,3 @@ def start():
     guiInstance.Show()
     net.gui = guiInstance
     app.MainLoop()
-    
