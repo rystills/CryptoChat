@@ -5,6 +5,7 @@ ciphers:
 main:
 -negotiation
 -establishing a secure channel
+-test on separate machines (move away from localhost w/ hardcoded ip/port)
 
 misc:
 -move GUI to its own file

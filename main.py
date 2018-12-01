@@ -10,12 +10,10 @@ sys.path.insert(0, 'DES/'); import DES
 sys.path.insert(0, 'NS_DH/'); import NS_DH
 sys.path.insert(0, 'BG/'); import BG
 sys.path.insert(0, 'Paillier/'); import Paillier
+import networking as net
 import json
 encoder = json.JSONEncoder()
 decoder = json.JSONDecoder()
-
-global securingConnection
-securingConnection = False
 
 global frame
 #layouting constants
@@ -30,12 +28,6 @@ inIp = '127.0.0.1'
 outIp = '127.0.0.1'
 outPort = 5005
 inPort = 5004
-global outSock
-outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-global inConn
-global outConn
-inConn = None
-outConn = None
 
 #stubbed privKey/pubKey
 #privKey,pubKey = Paillier.generate_keypair()
@@ -128,7 +120,7 @@ class GUI(wx.Frame):
     @param msg: the string message (not yet utf-8 encoded) to send
     """
     def sendMessage(self,msg):
-        if (not (inConn or outConn)):
+        if (not (net.inConn or net.outConn)):
             #nobody to send the message to
             return
         self.messageLogString.SetValue(self.messageLogString.GetValue() + ("\n"+'-'*148+"\nSent: " if self.messageLogString.GetValue() != "" else "Sent: ") + msg)
@@ -163,12 +155,12 @@ send a message on whichever connection is currently open
 """
 def sendMessage(msg):
     print("sending {0}".format(msg))
-    if (inConn):
-        print("sending on inConn")
-        inConn.send(encryptMsg(msg).encode("utf-8"))
-    elif (outConn):
-        print("sending on outConn")
-        outConn.send(encryptMsg(msg).encode("utf-8"))
+    if (net.inConn):
+        print("sending on net.inConn")
+        net.inConn.send(encryptMsg(msg).encode("utf-8"))
+    elif (net.outConn):
+        print("sending on net.outConn")
+        net.outConn.send(encryptMsg(msg).encode("utf-8"))
 
 """
 encrypt a msg using the current selected encryption algorithm
@@ -203,37 +195,33 @@ def decryptMsg(msg):
 attempt to connect to the currently specified ip and port
 """
 def connectToServer():
-    global outConn
-    if (outConn or inConn):
+    if (net.outConn or net.inConn):
         print("Error: already engaged in a chat; please disconnect before establishing a new connection")
         return
-    outSock.connect((outIp, outPort))
+    net.outSock.connect((outIp, outPort))
     print("established outgoing connection")
     frame.addOpenMessage()
-    outConn = outSock
+    net.outConn = net.outSock
     secureConnection(False)
    
 """
 disconnect from the currently active chat, if one exists
 """ 
 def disconnect():
-    global inConn
-    global outConn
-    global outSock
-    if (not (inConn or outConn)):
+    if (not (net.inConn or net.outConn)):
         #no connection from which to disconnect5
         return
     
-    if (inConn):
-        inConn.close()
-        inConn = None
-        print("disconnected inConn")
+    if (net.inConn):
+        net.inConn.close()
+        net.inConn = None
+        print("disconnected net.inConn")
 
-    if (outConn):
-        outConn.close()
-        outConn = None
-        outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("disconnected outConn")
+    if (net.outConn):
+        net.outConn.close()
+        net.outConn = None
+        net.outSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("disconnected net.outConn")
         
     if (frame.messageLogString.GetValue()[-11:] != "Closed Chat"):
         frame.addCloseMessage()
@@ -242,36 +230,32 @@ def disconnect():
 daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
 """
 def awaitMessages():
-    global inConn
-    global outConn
     while (True):
         #avoid a busyloop by only checking if we're in a connection once every 100ms
-        if (not (inConn or outConn)):
-            time.sleep(.1)
-            continue
-        print("awaiting {0} data".format("inConn" if inConn else "outConn"))
-        try:
-            data = inConn.recv(BUFFER_SIZE) if inConn else outConn.recv(BUFFER_SIZE)
-            print("data packet received is: {0}".format(data))
-            if (not data):
-                if (inConn):
-                    inConn.close()
-                    inConn = None
-                else:
-                    outConn.close()
-                    outConn = None
-            frame.addReceivedMessage(decryptMsg(data.decode("utf-8")))
-        except:
-            #received an error on conn recv - likely a disconnect was staged; disconnecting
-            disconnect()
+        time.sleep(.1)
+        if (net.inConn or net.outConn):
+            print("awaiting {0} data".format("net.inConn" if net.inConn else "net.outConn"))
+            try:
+                data = net.inConn.recv(BUFFER_SIZE) if net.inConn else net.outConn.recv(BUFFER_SIZE)
+                print("data packet received is: {0}".format(data))
+                if (not data):
+                    if (net.inConn):
+                        net.inConn.close()
+                        net.inConn = None
+                    else:
+                        net.outConn.close()
+                        net.outConn = None
+                frame.addReceivedMessage(decryptMsg(data.decode("utf-8")))
+            except:
+                #received an error on conn recv - likely a disconnect was staged; disconnecting
+                disconnect()
    
 """
 secure the current connection, negotiating and establishing a secure channel. Must complete before chat messages may be sent/recvd.
 @param amServer: whether we are acting as the server (true) or the client (false) in this instance
 """
 def secureConnection(amServer):
-    global securingConnection
-    securingConnection = True
+    net.securingConnection = True
     print("securing connection as {0}".format("server" if amServer else "client"))
     secureConnectionThread = threading.Thread(target=secureConnectionServer if amServer else secureConnectionClient, args=())
     secureConnectionThread.setDaemon(True)
@@ -283,7 +267,7 @@ daemon thread who runs through securing the connection as the server
 def secureConnectionServer():
     #TODO: secure connection as server
     print("server secured connection")
-    securingConnection = False
+    net.securingConnection = False
    
 """
 daemon thread who runs through securing the connection as the client
@@ -291,7 +275,7 @@ daemon thread who runs through securing the connection as the client
 def secureConnectionClient():
     #TODO: secure connection as client
     print("client secured connection")
-    securingConnection = False
+    net.securingConnection = False
     
 """
 daemon thread who listens for incoming connections, accepting them if we are not currently in a chat
@@ -300,20 +284,19 @@ def awaitConnections():
     inSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     inSock.bind((inIp, inPort))
     inSock.listen(1)
-    global inConn
     while (True):
         #avoid a busyloop by only checking if we're in a connection once every 100ms
-        if (inConn or outConn):
+        if (net.inConn or net.outConn):
             time.sleep(.1)
             continue
-        inConn, addr = inSock.accept()
-        if (outConn):
-            #if we just received a connection but we're already chatting on outConn, drop the new connection immediately
-            inConn.close()
-            inConn = None
+        net.inConn, addr = inSock.accept()
+        if (net.outConn):
+            #if we just received a connection but we're already chatting on net.outConn, drop the new connection immediately
+            net.inConn.close()
+            net.inConn = None
         else:
             frame.addOpenMessage()
-            print("accepted incoming connection from inConn {0}\noutConn {1}".format(inConn,addr))     
+            print("accepted incoming connection from net.inConn {0}\nnet.outConn {1}".format(net.inConn,addr))     
             secureConnection(True)
 
 if __name__=='__main__':
