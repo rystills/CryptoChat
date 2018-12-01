@@ -14,7 +14,11 @@ import GUI
 import networking as net
 
 #TODO: stubbed pre-established preference
-encryptionMode = "BG"
+global encryptionMode
+global PKCPref #preference for establishing a secure connection (distributing keys)
+global encPref #preference for message encryption/decryption
+PKCPref = "Paillier"
+encPref = "BG"
 
 #TODO: stubbed privKey/pubKey
 #privKey,pubKey = Paillier.generate_keypair()
@@ -25,14 +29,14 @@ pubKey = types.SimpleNamespace(n=139358136400596210820028512420294596809, nsq=19
 send a message on whichever connection is currently open
 @param msg: the string message (not yet utf-8 encoded) to send
 """
-def sendMessage(msg):
+def sendMessage(msg,shouldEncrypt=True):
     print("sending {0}".format(msg))
     if (net.inConn):
         print("sending on net.inConn")
-        net.inConn.send(encryptMsg(msg).encode("utf-8"))
+        net.inConn.send((encryptMsg(msg) if shouldEncrypt else msg).encode("utf-8"))
     elif (net.outConn):
         print("sending on net.outConn")
-        net.outConn.send(encryptMsg(msg).encode("utf-8"))
+        net.outConn.send((encryptMsg(msg) if shouldEncrypt else msg).encode("utf-8"))
 
 """
 encrypt a msg using the current selected encryption algorithm
@@ -110,18 +114,41 @@ def secureConnection(amServer):
     secureConnectionThread.start()
     
 """
-daemon thread who runs through securing the connection as the server
+daemon thread who runs through securing the connection as the server (person who received connection request)
 """
 def secureConnectionServer():
-    #TODO: secure connection as server
+    global PKCPref
+    global encPref
+    data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
+    print("received preference packet is: {0}".format(data))
+    data = data.split(" ")
+    #TODO: don't assume we have the same preference + version
+    PKCPref = data[1]
+    encPref = data[2]
+    sendMessage("Hello2 {0} {1}".format(PKCPref,encPref),False)
+    print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
+    
     print("server secured connection")
     #net.securingConnection = False
    
 """
-daemon thread who runs through securing the connection as the client
+daemon thread who runs through securing the connection as the client (person who sent connection request)
 """ 
 def secureConnectionClient():
-    #TODO: secure connection as client
+    global PKCPref
+    global encPref
+    sendMessage("Hello {0} {1}".format(PKCPref,encPref),False)
+    data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
+    if (data[:6] != "Hello2"):
+        disconnect()
+        net.securingConnection = False
+        return
+    data = data.split(" ")
+    PKCPref = data[1]
+    encPref = data[2]
+    sendMessage("Hello ACK",False)
+    print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
+    
     print("client secured connection")
     #net.securingConnection = False
     

@@ -3,12 +3,11 @@ ciphers:
 -use HMAC + SHA1
 
 main:
--negotiation
+-negotiation (proper preference check / error handling)
 -establishing a secure channel
 -test on separate machines (move away from localhost w/ hardcoded ip/port)
 
 misc:
--move GUI to its own file
 -remove magic numbers from GUI layouting
 
 optional:
