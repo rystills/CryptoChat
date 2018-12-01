@@ -1,19 +1,19 @@
-import wx, wx.lib.scrolledpanel
+import wx.lib.scrolledpanel
 import socket
 import threading
 import time
 import sys
 import types
 import cryptoutil
-from wx.lib.agw.persist.persist_handlers import MenuBarHandler
+import json; encoder = json.JSONEncoder(); decoder = json.JSONDecoder()
 sys.path.insert(0, 'DES/'); import DES
 sys.path.insert(0, 'NS_DH/'); import NS_DH
 sys.path.insert(0, 'BG/'); import BG
 sys.path.insert(0, 'Paillier/'); import Paillier
 import networking as net
-import json
-encoder = json.JSONEncoder()
-decoder = json.JSONDecoder()
+
+#TODO: stubbed pre-established preference
+encryptionMode = "BG"
 
 global frame
 #layouting constants
@@ -21,23 +21,10 @@ global frame
 winPadX = 16 #horizontal padding to fit content to window
 winPadY = 65 #vertical padding to fit content to window
 
-#networking vars
-BUFFER_SIZE = 4096
-#TODO: set ip and port in GUI
-inIp = '127.0.0.1'
-outIp = '127.0.0.1'
-outPort = 5005
-inPort = 5004
-
-#stubbed privKey/pubKey
+#TODO: stubbed privKey/pubKey
 #privKey,pubKey = Paillier.generate_keypair()
 privKey = types.SimpleNamespace(l=139358136400596210796101638829470824320, m=77579141096015302651837419351184213921) 
 pubKey = types.SimpleNamespace(n=139358136400596210820028512420294596809, nsq=19420690181047178617561734038854936171810222360568237602495984522839872982481)
-
-
-#preferences
-global encryptionMode
-encryptionMode = "BG"
 
 """
 the GUI class defines all graphical components of our application, utilizing the WxPython library.
@@ -51,9 +38,9 @@ class GUI(wx.Frame):
     @param screenWidth: the desired width (in pixels) of the window
     @param screenHeight: the desired height (in pixels) of the window
     """
-    def __init__(self,parent,id,title,screenWidth,screenHeight):
+    def __init__(self,parent,title,screenWidth,screenHeight):
         #Create a fixed size frame
-        wx.Frame.__init__(self,parent,id,title,size=(screenWidth,screenHeight), style=(wx.DEFAULT_FRAME_STYLE) ^ (wx.RESIZE_BORDER|wx.MAXIMIZE_BOX))
+        wx.Frame.__init__(self,parent,-1,title,size=(screenWidth,screenHeight), style=(wx.DEFAULT_FRAME_STYLE) ^ (wx.RESIZE_BORDER|wx.MAXIMIZE_BOX))
         self.SetFont(wx.Font(9, wx.SWISS, wx.NORMAL, wx.NORMAL))
     
         #menubar panel
@@ -198,7 +185,7 @@ def connectToServer():
     if (net.outConn or net.inConn):
         print("Error: already engaged in a chat; please disconnect before establishing a new connection")
         return
-    net.outSock.connect((outIp, outPort))
+    net.outSock.connect((net.outIp, net.outPort))
     print("established outgoing connection")
     frame.addOpenMessage()
     net.outConn = net.outSock
@@ -236,7 +223,7 @@ def awaitMessages():
         if (net.inConn or net.outConn):
             print("awaiting {0} data".format("net.inConn" if net.inConn else "net.outConn"))
             try:
-                data = net.inConn.recv(BUFFER_SIZE) if net.inConn else net.outConn.recv(BUFFER_SIZE)
+                data = net.inConn.recv(net.BUFFER_SIZE) if net.inConn else net.outConn.recv(net.BUFFER_SIZE)
                 print("data packet received is: {0}".format(data))
                 if (not data):
                     if (net.inConn):
@@ -282,7 +269,7 @@ daemon thread who listens for incoming connections, accepting them if we are not
 """     
 def awaitConnections():
     inSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    inSock.bind((inIp, inPort))
+    inSock.bind((net.inIp, net.inPort))
     inSock.listen(1)
     while (True):
         #avoid a busyloop by only checking if we're in a connection once every 100ms
@@ -300,11 +287,9 @@ def awaitConnections():
             secureConnection(True)
 
 if __name__=='__main__':
-    if (len(sys.argv) > 1):
-        inPort = int(sys.argv[1])
-    if (len(sys.argv) > 2):
-        outPort = int(sys.argv[2])
-    print("initializing with inPort {0} outPort {1}".format(inPort,outPort))
+    net.inPort = int(sys.argv[1]) if (len(sys.argv) > 1) else 5004
+    net.outPort = int(sys.argv[2]) if (len(sys.argv) > 2) else 5005
+    print("initializing with inPort {0} outPort {1}".format(net.inPort,net.outPort))
         
     global frame
     inConnThread = threading.Thread(target=awaitConnections, args=())
@@ -314,6 +299,6 @@ if __name__=='__main__':
     inConnThread.start()
     inMsgThread.start()
     app = wx.App()
-    frame = GUI(parent=None, id=-1, title="CryptoChat",screenWidth = 640, screenHeight = 480)
+    frame = GUI(parent=None, title="CryptoChat",screenWidth = 640, screenHeight = 480)
     frame.Show()
     app.MainLoop()
