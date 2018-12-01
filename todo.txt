@@ -11,5 +11,6 @@ misc:
 -remove magic numbers from GUI layouting
 
 optional:
+-use try/catch blocks to deal with potential network troubles
 -frozen executable (at least for windows, maybe for other platforms)
 -implement a KDC

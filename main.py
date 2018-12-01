@@ -14,7 +14,6 @@ import GUI
 import networking as net
 
 #TODO: stubbed pre-established preference
-global encryptionMode
 global PKCPref #preference for establishing a secure connection (distributing keys)
 global encPref #preference for message encryption/decryption
 PKCPref = "Paillier"
@@ -44,9 +43,9 @@ encrypt a msg using the current selected encryption algorithm
 @returns the encrypted message
 """
 def encryptMsg(msg):
-    if (encryptionMode == "DES"):
+    if (encPref == "DES"):
         encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
-    elif (encryptionMode == "BG"):
+    elif (encPref == "BG"):
         bits,x = BG.BGPEnc(cryptoutil.tobits(msg))
         #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
         encrypted = encoder.encode((cryptoutil.frombits(bits),x))
@@ -59,9 +58,9 @@ decrypt a msg using the current selected encryption algorithm
 @returns the decrypted message
 """ 
 def decryptMsg(msg):
-    if (encryptionMode == "DES"):
+    if (encPref == "DES"):
         decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
-    elif (encryptionMode == "BG"):
+    elif (encPref == "BG"):
         bitsStr,x = decoder.decode(msg)
         decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x))
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
@@ -117,6 +116,7 @@ def secureConnection(amServer):
 daemon thread who runs through securing the connection as the server (person who received connection request)
 """
 def secureConnectionServer():
+    #negotiation
     global PKCPref
     global encPref
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
@@ -127,14 +127,21 @@ def secureConnectionServer():
     encPref = data[2]
     sendMessage("Hello2 {0} {1}".format(PKCPref,encPref),False)
     print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
+    data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
+    if (data[:9] != "Hello ACK"):
+        disconnect()
+        net.securingConnection = False
+        return
+    #establishing a secure channel
     
     print("server secured connection")
-    #net.securingConnection = False
+    net.securingConnection = False
    
 """
 daemon thread who runs through securing the connection as the client (person who sent connection request)
 """ 
 def secureConnectionClient():
+    #negotiation
     global PKCPref
     global encPref
     sendMessage("Hello {0} {1}".format(PKCPref,encPref),False)
@@ -149,8 +156,10 @@ def secureConnectionClient():
     sendMessage("Hello ACK",False)
     print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
     
+    #establishing a secure channel
+    
     print("client secured connection")
-    #net.securingConnection = False
+    net.securingConnection = False
     
 """
 daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
