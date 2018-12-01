@@ -5,10 +5,11 @@ import sys
 import types
 import cryptoutil
 import json; encoder = json.JSONEncoder(); decoder = json.JSONDecoder()
-sys.path.insert(0, 'DES/'); import DES
-sys.path.insert(0, 'NS_DH/'); import NS_DH
-sys.path.insert(0, 'BG/'); import BG
-sys.path.insert(0, 'Paillier/'); import Paillier
+from DES import DES
+from NS_DH import NS_DH
+from BG import BG
+from Paillier import Paillier
+from AES import AES
 import GUI
 import networking as net
 
