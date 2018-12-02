@@ -16,8 +16,8 @@ import networking as net
 #TODO: stubbed pre-established preference
 global PKCPref #preference for establishing a secure connection (distributing keys)
 global encPref #preference for message encryption/decryption
-PKCPref = "Paillier"
-encPref = "BG"
+PKCPref = "RSA"
+encPref = "Paillier"
 
 #TODO: stubbed privKey/pubKey
 #privKey,pubKey = Paillier.generate_keypair()
@@ -49,6 +49,9 @@ def encryptMsg(msg):
         bits,x = BG.BGPEnc(cryptoutil.tobits(msg))
         #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
         encrypted = encoder.encode((cryptoutil.frombits(bits),x))
+    elif (encPref == "Paillier"):
+        #encrypt a JSON encoded list of encrypted segments of 12 characters each (converted to ascii)
+        encrypted = encoder.encode([str(Paillier.encrypt(pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -63,6 +66,9 @@ def decryptMsg(msg):
     elif (encPref == "BG"):
         bitsStr,x = decoder.decode(msg)
         decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x))
+    elif (encPref == "Paillier"):
+        msg = decoder.decode(msg)
+        decrypted = ''.join([cryptoutil.asciiIntToStr(Paillier.decrypt(privKey,pubKey,int(i))) for i in msg])
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
     return decrypted
 
@@ -132,10 +138,17 @@ def secureConnectionServer():
         disconnect()
         net.securingConnection = False
         return
+    
+    net.gui.addSecuringMessage()
     #establishing a secure channel
+    if (PKCPref == "RSA"):
+        pass
+    elif (PKCPref == "NS_DH"):
+        pass
     
     print("server secured connection")
     net.securingConnection = False
+    net.gui.addChatReadyMessage()
    
 """
 daemon thread who runs through securing the connection as the client (person who sent connection request)
@@ -156,10 +169,16 @@ def secureConnectionClient():
     sendMessage("Hello ACK",False)
     print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
     
+    net.gui.addSecuringMessage()
     #establishing a secure channel
+    if (PKCPref == "RSA"):
+        pass
+    elif (PKCPref == "NS_DH"):
+        pass
     
     print("client secured connection")
     net.securingConnection = False
+    net.gui.addChatReadyMessage()
     
 """
 daemon thread who listens for messages while we have an active chat, and adds them to the chat history box
@@ -204,7 +223,7 @@ def awaitConnections():
             net.inConn.close()
             net.inConn = None
         else:
-            net.gui.addOpenMessage()
+            net.gui.addInitMessage()
             print("accepted incoming connection from net.inConn {0}\nnet.outConn {1}".format(net.inConn,addr))     
             secureConnection(True)
 

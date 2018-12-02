@@ -1,11 +1,12 @@
 ciphers:
 -upgrade Toy DES to SDES3 (alt; implement AES)
--use HMAC + SHA1
+-incorporate DH as a private key exchange option
 
 main:
 -negotiation (proper preference check / error handling)
 -establishing a secure channel
 -test on separate machines (move away from localhost w/ hardcoded ip/port)
+-authentication (use HMAC + SHA1)
 
 misc:
 -remove magic numbers from GUI layouting

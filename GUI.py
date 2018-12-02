@@ -75,7 +75,7 @@ class GUI(wx.Frame):
         if (btn == self.connectButton):
             if (main.connectToServer()):
                 #TODO: move this message to after the connection is secured
-                self.addOpenMessage()
+                self.addInitMessage()
         if (btn == self.exitChatButton):
             if (main.disconnect()):
                 self.addCloseMessage()
@@ -122,10 +122,24 @@ class GUI(wx.Frame):
             self.scrollDown()
     
     """
-    add a message indicating to the user that we have connected to a chat
+    add a message indicating to the user that we have initiated a chat
     """
-    def addOpenMessage(self):
+    def addInitMessage(self):
         self.messageLogString.SetValue(self.messageLogString.GetValue() + self.newlineStr() + "Initiated Chat; negotiating...")
+        self.scrollDown()
+        
+    """
+    add a message indicating that we have negotiated the chat, and are now securing
+    """
+    def addSecuringMessage(self):
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + self.newlineStr() + "Negotiation Complete; securing Channel...")
+        self.scrollDown()
+        
+    """
+    add a message indicating that we have secured the chat, and are ready to talk securely
+    """
+    def addChatReadyMessage(self):
+        self.messageLogString.SetValue(self.messageLogString.GetValue() + self.newlineStr() + "Securing Complete; ready to chat!")
         self.scrollDown()
         
 def start():
