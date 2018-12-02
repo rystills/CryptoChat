@@ -10,7 +10,9 @@ generate private and public key
 """
 def generate_keypair(bits=128):
     p = primality.generatePrime(bits // 2)
-    q = primality.generatePrime(bits // 2)
+    q = p
+    while (q == p):
+        q = primality.generatePrime(bits // 2)
     l = (p-1) * (q-1)
     n = p*q
     return types.SimpleNamespace(l=l, m=cryptoutil.modInv(l, p*q)), types.SimpleNamespace(n=n,nsq=n*n)

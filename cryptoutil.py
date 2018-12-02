@@ -75,6 +75,18 @@ def modInv(a, m):
         return (g, x - (b // a) * y, y)
     return egcd(a, m)[1] % m
 
+"""
+perform the extended euclid function on the provided primes
+@param a: first prime
+@param b: second prime
+@returns: the values s and t such that a*s + b*t = 1
+"""
+def extEuclid(a,b):
+    if (b == 0):
+        return (1,0)
+    s1, t1 = extEuclid(b,a%b)
+    return t1,s1 - (a // b) * t1
+
 def main():
     a = "test string"
     b = strToAsciiInt(a)

@@ -1,4 +1,4 @@
-#my job is to store networking globals (plus a reference to the GUI instance since all the threads talk to him)
+#my job is to store networking globals, as well as common used across modules
 import socket
 
 inConn = outConn = None
@@ -10,3 +10,5 @@ inPort = outPort = None
 inIp = '127.0.0.1'
 outIp = '127.0.0.1'
 gui = None
+pubKey = None
+privKey = None

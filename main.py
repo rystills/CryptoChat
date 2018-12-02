@@ -18,14 +18,7 @@ import networking as net
 global PKCPref #preference for establishing a secure connection (distributing keys)
 global encPref #preference for message encryption/decryption
 PKCPref = "NS_DH"
-encPref = "Paillier"
-
-#TODO: stubbed privKey/pubKey
-#privKey,pubKey = Paillier.generate_keypair()
-#privKey = types.SimpleNamespace(l=139358136400596210796101638829470824320, m=77579141096015302651837419351184213921) 
-#pubKey = types.SimpleNamespace(n=139358136400596210820028512420294596809, nsq=19420690181047178617561734038854936171810222360568237602495984522839872982481)
-global privKey
-global pubKey
+encPref = "BG"
 
 """
 send a message on whichever connection is currently open
@@ -49,12 +42,12 @@ def encryptMsg(msg):
     if (encPref == "DES"):
         encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
     elif (encPref == "BG"):
-        bits,x = BG.BGPEnc(cryptoutil.tobits(msg),privKey.l,privKey.m)
+        bits,x = BG.BGPEnc(cryptoutil.tobits(msg),net.privKey.l,net.privKey.m)
         #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
         encrypted = encoder.encode((cryptoutil.frombits(bits),x))
     elif (encPref == "Paillier"):
         #encrypt a JSON encoded list of encrypted segments of 12 characters each (converted to ascii)
-        encrypted = encoder.encode([str(Paillier.encrypt(pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
+        encrypted = encoder.encode([str(Paillier.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -68,10 +61,10 @@ def decryptMsg(msg):
         decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
     elif (encPref == "BG"):
         bitsStr,x = decoder.decode(msg)
-        decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x,privKey.l,privKey.m))
+        decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x,net.privKey.l,net.privKey.m,net.privKey.a,net.privKey.b))
     elif (encPref == "Paillier"):
         msg = decoder.decode(msg)
-        decrypted = ''.join([cryptoutil.asciiIntToStr(Paillier.decrypt(privKey,pubKey,int(i))) for i in msg])
+        decrypted = ''.join([cryptoutil.asciiIntToStr(Paillier.decrypt(net.privKey,net.pubKey,int(i))) for i in msg])
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
     return decrypted
 
@@ -128,8 +121,6 @@ def secureConnectionServer():
     #negotiation
     global PKCPref
     global encPref
-    global privKey
-    global pubKey
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     print("received preference packet is: {0}".format(data))
     data = data.split(" ")
@@ -148,12 +139,13 @@ def secureConnectionServer():
     if (PKCPref == "RSA"):
         pass
     elif (PKCPref == "NS_DH"):
-        privKey = NS_DH.diffieHellman(net.inConn,False)
-        print(privKey)
+        net.privKey = NS_DH.diffieHellman(net.inConn,False)
     #generate additional private / public key data required by the preferred encryption cipher
-    random.seed(privKey)
+    random.seed(net.privKey)
     if (encPref == "Paillier"):
-        privKey,pubKey = Paillier.generate_keypair()
+        net.privKey,net.pubKey = Paillier.generate_keypair()
+    elif (encPref == "BG"):
+        net.privKey = BG.generateKey()
     
     print("server secured connection")
     net.securingConnection = False
@@ -166,8 +158,6 @@ def secureConnectionClient():
     #negotiation
     global PKCPref
     global encPref
-    global privKey
-    global pubKey
     sendMessage("Hello {0} {1}".format(PKCPref,encPref),False)
     data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:6] != "Hello2"):
@@ -185,12 +175,13 @@ def secureConnectionClient():
     if (PKCPref == "RSA"):
         pass
     elif (PKCPref == "NS_DH"):
-        privKey = NS_DH.diffieHellman(net.outConn,True)
-        print(privKey)
+        net.privKey = NS_DH.diffieHellman(net.outConn,True)
     #generate additional private / public key data required by the preferred encryption cipher
-    random.seed(privKey)
+    random.seed(net.privKey)
     if (encPref == "Paillier"):
-        privKey,pubKey = Paillier.generate_keypair()
+        net.privKey,net.pubKey = Paillier.generate_keypair()
+    elif (encPref == "BG"):
+        net.privKey = BG.generateKey()
     
     print("client secured connection")
     net.securingConnection = False
