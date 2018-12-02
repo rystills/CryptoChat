@@ -2,7 +2,7 @@ import random, sys, struct, time, subprocess
 try:
     import sympy
 except:
-    print("Warning: sympy is not installed; cannot perform poly math")
+    print("Warning: sympy is not installed; cannot perform poly math (shouldn't be needed for this build regardless)")
     
 try: import simplejson as json
 except ImportError: import json
@@ -123,7 +123,7 @@ def diffieHellman(conn, meFirst=True,p=13232376895198612407547930718267435757728
         B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
     s = pow(B,a,p)
     return s
-    #print(s)
+    #if you want a binary list:
     #return list(str(bin(s))[2:])
 
 """
