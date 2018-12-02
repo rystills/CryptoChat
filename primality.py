@@ -100,13 +100,15 @@ def pollardRho(n,secondTry = False):
 """
 generate a random prime of bits number of bits
 @param bits: number of bits in the desired prime
+@param modulo: a tuple s.t. when provided, the prime must be congruent to (modulo[0] mod modulo[1])
 @returns: a prime with bits number of bits
 """
-def generatePrime(bits):
+def generatePrime(bits,modulo=None):
     while True:
         p = random.randrange(2 ** (bits-1) + 1, 2 ** bits) | 1
-        if millerRobin(p):
-            return p
+        if (modulo == None or p%modulo[1] == modulo[0]):
+            if millerRobin(p):
+                return p
 
 def main():
     for i in [31531, 520482, 485827, 15485863]:

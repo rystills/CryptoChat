@@ -46,7 +46,7 @@ def encryptMsg(msg):
     if (encPref == "DES"):
         encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
     elif (encPref == "BG"):
-        bits,x = BG.BGPEnc(cryptoutil.tobits(msg))
+        bits,x = BG.BGPEnc(cryptoutil.tobits(msg),privKey.l,privKey.m)
         #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
         encrypted = encoder.encode((cryptoutil.frombits(bits),x))
     elif (encPref == "Paillier"):
@@ -65,7 +65,7 @@ def decryptMsg(msg):
         decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
     elif (encPref == "BG"):
         bitsStr,x = decoder.decode(msg)
-        decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x))
+        decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x,privKey.l,privKey.m))
     elif (encPref == "Paillier"):
         msg = decoder.decode(msg)
         decrypted = ''.join([cryptoutil.asciiIntToStr(Paillier.decrypt(privKey,pubKey,int(i))) for i in msg])
