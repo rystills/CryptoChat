@@ -109,6 +109,7 @@ diffie-hellman implementation
 @param meFirst: whether I should receive Yb before sending Ya during the exchange or vice versa
 @param p: custom p-value
 @param g: custom g-value
+@returns: the calculated integer key value
 """ 
 def diffieHellman(conn, meFirst=True,p=13232376895198612407547930718267435757728527029623408872245156039757713029036368719146452186041204237350521785240337048752071462798273003935646236777459223,g=2):
     a = random.randint(0,1000000000)
@@ -121,8 +122,9 @@ def diffieHellman(conn, meFirst=True,p=13232376895198612407547930718267435757728
         conn.send(str(A).encode("utf-8"))
         B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
     s = pow(B,a,p)
-    print(s)
-    return list(str(bin(s))[2:])
+    return s
+    #print(s)
+    #return list(str(bin(s))[2:])
 
 """
 diffie-hellman polynomial implementation

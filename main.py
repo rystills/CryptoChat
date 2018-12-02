@@ -3,6 +3,7 @@ import threading
 import time
 import sys
 import types
+import random
 import cryptoutil
 import json; encoder = json.JSONEncoder(); decoder = json.JSONDecoder()
 from DES import DES
@@ -127,6 +128,8 @@ def secureConnectionServer():
     #negotiation
     global PKCPref
     global encPref
+    global privKey
+    global pubKey
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     print("received preference packet is: {0}".format(data))
     data = data.split(" ")
@@ -139,7 +142,6 @@ def secureConnectionServer():
     if (data[:9] != "Hello ACK"):
         disconnect()
         net.securingConnection = False
-        return
     
     net.gui.addSecuringMessage()
     #establishing a secure channel
@@ -148,7 +150,10 @@ def secureConnectionServer():
     elif (PKCPref == "NS_DH"):
         privKey = NS_DH.diffieHellman(net.inConn,False)
         print(privKey)
-        pass
+    #generate additional private / public key data required by the preferred encryption cipher
+    random.seed(privKey)
+    if (encPref == "Paillier"):
+        privKey,pubKey = Paillier.generate_keypair()
     
     print("server secured connection")
     net.securingConnection = False
@@ -161,6 +166,8 @@ def secureConnectionClient():
     #negotiation
     global PKCPref
     global encPref
+    global privKey
+    global pubKey
     sendMessage("Hello {0} {1}".format(PKCPref,encPref),False)
     data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:6] != "Hello2"):
@@ -180,7 +187,10 @@ def secureConnectionClient():
     elif (PKCPref == "NS_DH"):
         privKey = NS_DH.diffieHellman(net.outConn,True)
         print(privKey)
-        pass
+    #generate additional private / public key data required by the preferred encryption cipher
+    random.seed(privKey)
+    if (encPref == "Paillier"):
+        privKey,pubKey = Paillier.generate_keypair()
     
     print("client secured connection")
     net.securingConnection = False
