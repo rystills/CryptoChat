@@ -131,43 +131,57 @@ def decidePreferences(inPKCList,inEncList):
 daemon thread who runs through securing the connection as the server (person who received connection request)
 """
 def secureConnectionServer():
-    #negotiation
-    data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
-    print("received preference packet is: {0}".format(data))
-    data = decoder.decode(data[6:])
-    #TODO: don't assume we have the same preference + version
-    if not (decidePreferences(data[0],data[1])):
-        print("Error: no commonality between preferences")
+    try:
+        #negotiation
+        data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
+        print("received preference packet is: {0}".format(data))
+        data = decoder.decode(data[6:])
+        #TODO: don't assume we have the same preference + version
+        if not (decidePreferences(data[0],data[1])):
+            print("Error: no commonality between preferences")
+            disconnect()
+            net.gui.addCloseMessage()
+            net.securingConnection = False
+            return False
+        sendMessage("Hello2 {0} {1}".format(net.PKCPref,net.encPref),False)
+        data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
+        if (data[:9] != "Hello ACK"):
+            disconnect()
+            net.gui.addCloseMessage()
+            net.securingConnection = False
+            return False
+        establishSecureChannel(True)
+    except Exception as ex:
+        print("Error: failed to secure a connection: {0}".format(ex))
         disconnect()
         net.gui.addCloseMessage()
         net.securingConnection = False
         return False
-    sendMessage("Hello2 {0} {1}".format(net.PKCPref,net.encPref),False)
-    data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
-    if (data[:9] != "Hello ACK"):
-        disconnect()
-        net.gui.addCloseMessage()
-        net.securingConnection = False
-        return False
-    establishSecureChannel(True)
    
 """
 daemon thread who runs through securing the connection as the client (person who sent connection request)
 """ 
 def secureConnectionClient():
-    #negotiation
-    sendMessage("Hello {0}".format(encoder.encode([net.PCKPrefList,net.encPrefList])),False)
-    data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
-    if (data[:6] != "Hello2"):
+    try:
+        #negotiation
+        sendMessage("Hello {0}".format(encoder.encode([net.PCKPrefList,net.encPrefList])),False)
+        data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
+        if (data[:6] != "Hello2"):
+            disconnect()
+            net.gui.addCloseMessage()
+            net.securingConnection = False
+            return False
+        data = data.split(" ")
+        net.PKCPref = data[1]
+        net.encPref = data[2]
+        sendMessage("Hello ACK",False)
+        establishSecureChannel(False)
+    except Exception as ex:
+        print("Error: failed to secure a connection: {0}".format(ex))
         disconnect()
         net.gui.addCloseMessage()
         net.securingConnection = False
         return False
-    data = data.split(" ")
-    net.PKCPref = data[1]
-    net.encPref = data[2]
-    sendMessage("Hello ACK",False)
-    establishSecureChannel(False)
     
 """
 attempt to establish a secure channel; this should only be called during secureConnection
@@ -188,6 +202,8 @@ def establishSecureChannel(amServer):
     elif (net.encPref == "BG"):
         net.privKey = BG.generateKey()
     elif (net.encPref == "AES"):
+        pass
+    elif (net.PKCPref == "RSA"):
         pass
     
     print("client secured connection")

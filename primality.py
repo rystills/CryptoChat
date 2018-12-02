@@ -1,6 +1,6 @@
 import random
 
-"""miller-robin primality check
+"""miller-rabin primality check
 @param n: the number to test for primality
 @returns: whether the miller-robin primality check yielded true or false
 """
