@@ -14,12 +14,6 @@ from RSA import rsa
 import GUI
 import networking as net
 
-#TODO: stubbed pre-established preference
-global PKCPref #preference for establishing a secure connection (distributing keys)
-global encPref #preference for message encryption/decryption
-PKCPref = "NS_DH"
-encPref = "BG"
-
 """
 send a message on whichever connection is currently open
 @param msg: the string message (not yet utf-8 encoded) to send
@@ -39,13 +33,13 @@ encrypt a msg using the current selected encryption algorithm
 @returns the encrypted message
 """
 def encryptMsg(msg):
-    if (encPref == "DES"):
+    if (net.encPref == "DES"):
         encrypted = cryptoutil.frombits(DES.encrypt(cryptoutil.tobits(msg),DES.defaultKey))
-    elif (encPref == "BG"):
+    elif (net.encPref == "BG"):
         bits,x = BG.BGPEnc(cryptoutil.tobits(msg),net.privKey.l,net.privKey.m)
         #encrypt a JSON encoded tuple of (c,x) where c is the stringified encrypted bit list and x is the t+1th iteration of the random seed exponentiation
         encrypted = encoder.encode((cryptoutil.frombits(bits),x))
-    elif (encPref == "Paillier"):
+    elif (net.encPref == "Paillier"):
         #encrypt a JSON encoded list of encrypted segments of 12 characters each (converted to ascii)
         encrypted = encoder.encode([str(Paillier.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
@@ -57,12 +51,12 @@ decrypt a msg using the current selected encryption algorithm
 @returns the decrypted message
 """ 
 def decryptMsg(msg):
-    if (encPref == "DES"):
+    if (net.encPref == "DES"):
         decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
-    elif (encPref == "BG"):
+    elif (net.encPref == "BG"):
         bitsStr,x = decoder.decode(msg)
         decrypted = cryptoutil.frombits(BG.BGPDec(cryptoutil.tobits(bitsStr),x,net.privKey.l,net.privKey.m,net.privKey.a,net.privKey.b))
-    elif (encPref == "Paillier"):
+    elif (net.encPref == "Paillier"):
         msg = decoder.decode(msg)
         decrypted = ''.join([cryptoutil.asciiIntToStr(Paillier.decrypt(net.privKey,net.pubKey,int(i))) for i in msg])
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
@@ -119,68 +113,54 @@ daemon thread who runs through securing the connection as the server (person who
 """
 def secureConnectionServer():
     #negotiation
-    global PKCPref
-    global encPref
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     print("received preference packet is: {0}".format(data))
     data = data.split(" ")
     #TODO: don't assume we have the same preference + version
-    PKCPref = data[1]
-    encPref = data[2]
-    sendMessage("Hello2 {0} {1}".format(PKCPref,encPref),False)
-    print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
+    net.PKCPref = data[1]
+    net.encPref = data[2]
+    sendMessage("Hello2 {0} {1}".format(net.PKCPref,net.encPref),False)
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:9] != "Hello ACK"):
         disconnect()
         net.securingConnection = False
-    
-    net.gui.addSecuringMessage()
-    #establishing a secure channel
-    if (PKCPref == "RSA"):
-        pass
-    elif (PKCPref == "NS_DH"):
-        net.privKey = NS_DH.diffieHellman(net.inConn,False)
-    #generate additional private / public key data required by the preferred encryption cipher
-    random.seed(net.privKey)
-    if (encPref == "Paillier"):
-        net.privKey,net.pubKey = Paillier.generate_keypair()
-    elif (encPref == "BG"):
-        net.privKey = BG.generateKey()
-    
-    print("server secured connection")
-    net.securingConnection = False
-    net.gui.addChatReadyMessage()
+        return False
+    establishSecureChannel(True)
    
 """
 daemon thread who runs through securing the connection as the client (person who sent connection request)
 """ 
 def secureConnectionClient():
     #negotiation
-    global PKCPref
-    global encPref
-    sendMessage("Hello {0} {1}".format(PKCPref,encPref),False)
+    sendMessage("Hello {0} {1}".format(net.PKCPref,net.encPref),False)
     data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:6] != "Hello2"):
         disconnect()
         net.securingConnection = False
-        return
+        return False
     data = data.split(" ")
-    PKCPref = data[1]
-    encPref = data[2]
+    net.PKCPref = data[1]
+    net.encPref = data[2]
     sendMessage("Hello ACK",False)
-    print("~PREFERENCES~\n{0} {1}".format(PKCPref,encPref))
+    establishSecureChannel(False)
     
+"""
+attempt to establish a secure channel; this should only be called during secureConnection
+@param amServer: whether I'm the server (True) or the client (False)
+"""
+def establishSecureChannel(amServer):
+    print("~PREFERENCES~\n{0} {1}".format(net.PKCPref,net.encPref))
     net.gui.addSecuringMessage()
     #establishing a secure channel
-    if (PKCPref == "RSA"):
+    if (net.PKCPref == "RSA"):
         pass
-    elif (PKCPref == "NS_DH"):
-        net.privKey = NS_DH.diffieHellman(net.outConn,True)
+    elif (net.PKCPref == "NS_DH"):
+        net.privKey = NS_DH.diffieHellman(net.inConn if amServer else net.outConn,amServer)
     #generate additional private / public key data required by the preferred encryption cipher
     random.seed(net.privKey)
-    if (encPref == "Paillier"):
+    if (net.encPref == "Paillier"):
         net.privKey,net.pubKey = Paillier.generate_keypair()
-    elif (encPref == "BG"):
+    elif (net.encPref == "BG"):
         net.privKey = BG.generateKey()
     
     print("client secured connection")
