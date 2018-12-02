@@ -1,4 +1,9 @@
-import sympy, random, sys, struct, os, time, subprocess
+import random, sys, struct, time, subprocess
+try:
+    import sympy
+except:
+    print("Warning: sympy is not installed; cannot perform poly math")
+    
 try: import simplejson as json
 except ImportError: import json
 sys.path.insert(0, '../DES/'); import DES
@@ -97,14 +102,34 @@ def sendMessage(conn,msg):
     sent = struct.pack('>I', len(sent)) + sent
     #print("sent data:",sent)
     conn.sendall(sent)
-
+   
 """
 diffie-hellman implementation
 @param conn: the socket connection to use for Ya/Yb exchange
-@param BUFFER_SIZE: the size of the network buffer to employ
+@param meFirst: whether I should receive Yb before sending Ya during the exchange or vice versa
+@param p: custom p-value
+@param g: custom g-value
+""" 
+def diffieHellman(conn, meFirst=True,p=13232376895198612407547930718267435757728527029623408872245156039757713029036368719146452186041204237350521785240337048752071462798273003935646236777459223,g=2):
+    a = random.randint(0,1000000000)
+    A = pow(g,a,p)
+    print(A)
+    if (meFirst):
+        B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
+        conn.send(str(A).encode("utf-8"))
+    else:
+        conn.send(str(A).encode("utf-8"))
+        B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
+    s = pow(B,a,p)
+    print(s)
+    return list(str(bin(s))[2:])
+
+"""
+diffie-hellman polynomial implementation
+@param conn: the socket connection to use for Ya/Yb exchange
 @param meFirst: whether I should receive Yb before sending Ya during the exchange or vice versa
 """
-def diffieHellman(conn, meFirst = True):
+def diffieHellmanPoly(conn, meFirst = True):
     #hard-coded constants (you can change these if you want, but primpoly should stay degree 10)
     primPoly = sympy.Poly.from_list([1,0,0,0,0,0,0,0,0,1,1],gens=x)
     G = 100

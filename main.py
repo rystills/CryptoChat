@@ -16,13 +16,15 @@ import networking as net
 #TODO: stubbed pre-established preference
 global PKCPref #preference for establishing a secure connection (distributing keys)
 global encPref #preference for message encryption/decryption
-PKCPref = "RSA"
+PKCPref = "NS_DH"
 encPref = "Paillier"
 
 #TODO: stubbed privKey/pubKey
 #privKey,pubKey = Paillier.generate_keypair()
-privKey = types.SimpleNamespace(l=139358136400596210796101638829470824320, m=77579141096015302651837419351184213921) 
-pubKey = types.SimpleNamespace(n=139358136400596210820028512420294596809, nsq=19420690181047178617561734038854936171810222360568237602495984522839872982481)
+#privKey = types.SimpleNamespace(l=139358136400596210796101638829470824320, m=77579141096015302651837419351184213921) 
+#pubKey = types.SimpleNamespace(n=139358136400596210820028512420294596809, nsq=19420690181047178617561734038854936171810222360568237602495984522839872982481)
+global privKey
+global pubKey
 
 """
 send a message on whichever connection is currently open
@@ -144,6 +146,8 @@ def secureConnectionServer():
     if (PKCPref == "RSA"):
         pass
     elif (PKCPref == "NS_DH"):
+        privKey = NS_DH.diffieHellman(net.inConn,False)
+        print(privKey)
         pass
     
     print("server secured connection")
@@ -174,6 +178,8 @@ def secureConnectionClient():
     if (PKCPref == "RSA"):
         pass
     elif (PKCPref == "NS_DH"):
+        privKey = NS_DH.diffieHellman(net.outConn,True)
+        print(privKey)
         pass
     
     print("client secured connection")
@@ -218,14 +224,14 @@ def awaitConnections():
             time.sleep(.1)
             continue
         net.inConn, addr = inSock.accept()
-        if (net.outConn):
+        '''if (net.outConn):
             #if we just received a connection but we're already chatting on net.outConn, drop the new connection immediately
             net.inConn.close()
             net.inConn = None
-        else:
-            net.gui.addInitMessage()
-            print("accepted incoming connection from net.inConn {0}\nnet.outConn {1}".format(net.inConn,addr))     
-            secureConnection(True)
+        else:'''
+        net.gui.addInitMessage()
+        print("accepted incoming connection from net.inConn {0}\nnet.outConn {1}".format(net.inConn,addr))     
+        secureConnection(True)
 
 if __name__=='__main__':
     net.inPort = int(sys.argv[1]) if (len(sys.argv) > 1) else 5004
