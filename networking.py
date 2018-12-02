@@ -13,6 +13,7 @@ gui = None
 pubKey = None
 privKey = None
 
-#TODO: stubbed pre-established preference
-PKCPref = "NS_DH" #preference for establishing a secure connection (distributing keys)
-encPref = "BG" #preference for message encryption/decryption
+PCKPrefList = [] #preference for establishing a secure connection (distributing keys)
+encPrefList = [] #preference for message encryption/decryption
+PKCPref = None
+encPref = None 

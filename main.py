@@ -109,20 +109,46 @@ def secureConnection(amServer):
     secureConnectionThread.start()
     
 """
+decide on preferences by picking the first match of PKC and Enc
+@param inPKCList: the received list of PKC preferences
+@param inEncList: the received list of encryption preferences
+@returns; whether common preferences were found and selected (True) or no commonality was found (False)
+"""
+def decidePreferences(inPKCList,inEncList):
+    net.PKCPref = None
+    net.encPref = None
+    for pref in inPKCList:
+        if (pref in net.PCKPrefList):
+            net.PKCPref = pref
+            break
+    for pref in inEncList:
+        if (pref in net.encPrefList):
+            net.encPref = pref
+            break
+    return net.PKCPref != None and net.encPref != None
+    
+"""
 daemon thread who runs through securing the connection as the server (person who received connection request)
 """
 def secureConnectionServer():
     #negotiation
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     print("received preference packet is: {0}".format(data))
-    data = data.split(" ")
+    data = decoder.decode(data[6:])
     #TODO: don't assume we have the same preference + version
-    net.PKCPref = data[1]
-    net.encPref = data[2]
+    if not (decidePreferences(data[0],data[1])):
+        print("Error: no commonality between preferences")
+        disconnect()
+        net.gui.addCloseMessage()
+        net.securingConnection = False
+        return False
+    print(net.PKCPref)
+    print(net.encPref)
     sendMessage("Hello2 {0} {1}".format(net.PKCPref,net.encPref),False)
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:9] != "Hello ACK"):
         disconnect()
+        net.gui.addCloseMessage()
         net.securingConnection = False
         return False
     establishSecureChannel(True)
@@ -132,10 +158,11 @@ daemon thread who runs through securing the connection as the client (person who
 """ 
 def secureConnectionClient():
     #negotiation
-    sendMessage("Hello {0} {1}".format(net.PKCPref,net.encPref),False)
+    sendMessage("Hello {0}".format(encoder.encode([net.PCKPrefList,net.encPrefList])),False)
     data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:6] != "Hello2"):
         disconnect()
+        net.gui.addCloseMessage()
         net.securingConnection = False
         return False
     data = data.split(" ")
@@ -162,6 +189,8 @@ def establishSecureChannel(amServer):
         net.privKey,net.pubKey = Paillier.generate_keypair()
     elif (net.encPref == "BG"):
         net.privKey = BG.generateKey()
+    elif (net.encPref == "AES"):
+        pass
     
     print("client secured connection")
     net.securingConnection = False
@@ -213,8 +242,25 @@ def awaitConnections():
         net.gui.addInitMessage()
         print("accepted incoming connection from net.inConn {0}\nnet.outConn {1}".format(net.inConn,addr))     
         secureConnection(True)
+        
+"""
+extract the text data from a file, splitting by whitespace / newline
+@returns: the split text data stored in the specified file
+"""
+def loadPreferences():
+    f = open("preferences.cfg", "r")
+    if f.mode != 'r':
+        print("Error: preferences file was not found; did you delete it?")
+        sys.exit()
+    text = f.read()
+    f.close()
+    prefs = text.strip().split('\n')
+    encInd = prefs.index("encryption:")
+    net.PCKPrefList = prefs[1:encInd]
+    net.encPrefList = prefs[encInd+1:]
 
 if __name__=='__main__':
+    preferences = loadPreferences()
     net.inPort = int(sys.argv[1]) if (len(sys.argv) > 1) else 5004
     net.outPort = int(sys.argv[2]) if (len(sys.argv) > 2) else 5005
     print("initializing with inPort {0} outPort {1}".format(net.inPort,net.outPort))
