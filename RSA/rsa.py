@@ -21,6 +21,22 @@ def mulinv(e, lam):
     if g == 1:
         return x % lam
 
+#take in the desired public key and message to be encrypted
+
+def encrypt(public_Key, m):
+    
+    n = public_Key[0]
+    e = public_Key[1]
+    c = (m**e)%n
+    return c
+
+#take in your private key and encrypted message, return original message
+def decrypt(private_Key, c):
+    
+    n = private_Key[0]
+    d = private_Key[1]
+    m = (c**d)%n
+    return m
 
 def extended_euclid(totient,e):
     x0 = 1
