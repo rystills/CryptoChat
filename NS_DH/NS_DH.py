@@ -114,7 +114,6 @@ diffie-hellman implementation
 def diffieHellman(conn, meFirst=True,p=13232376895198612407547930718267435757728527029623408872245156039757713029036368719146452186041204237350521785240337048752071462798273003935646236777459223,g=2):
     a = random.randint(0,1000000000)
     A = pow(g,a,p)
-    print(A)
     if (meFirst):
         B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
         conn.send(str(A).encode("utf-8"))

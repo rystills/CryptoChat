@@ -142,8 +142,6 @@ def secureConnectionServer():
         net.gui.addCloseMessage()
         net.securingConnection = False
         return False
-    print(net.PKCPref)
-    print(net.encPref)
     sendMessage("Hello2 {0} {1}".format(net.PKCPref,net.encPref),False)
     data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
     if (data[:9] != "Hello ACK"):
@@ -244,8 +242,7 @@ def awaitConnections():
         secureConnection(True)
         
 """
-extract the text data from a file, splitting by whitespace / newline
-@returns: the split text data stored in the specified file
+extract the user's preference data from preferences.cfg
 """
 def loadPreferences():
     f = open("preferences.cfg", "r")
@@ -255,9 +252,10 @@ def loadPreferences():
     text = f.read()
     f.close()
     prefs = text.strip().split('\n')
+    PCKInd = prefs.index("key distribution:")
     encInd = prefs.index("encryption:")
-    net.PCKPrefList = prefs[1:encInd]
-    net.encPrefList = prefs[encInd+1:]
+    net.PCKPrefList = [i for i in prefs[PCKInd+1:encInd] if i!='']
+    net.encPrefList = [i for i in prefs[encInd+1:] if i!='']
 
 if __name__=='__main__':
     preferences = loadPreferences()
