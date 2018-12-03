@@ -2,6 +2,7 @@ import random, sys, struct, time, subprocess
 import networking as net
 try:
     import sympy
+    x = sympy.Symbol('x')
 except:
     print("Warning: sympy is not installed; cannot perform poly math (shouldn't be needed for this build regardless)")
     
@@ -9,7 +10,6 @@ try: import simplejson as json
 except ImportError: import json
 sys.path.insert(0, '../DES/'); import DES
 
-x = sympy.Symbol('x')
 encoder = json.JSONEncoder()
 decoder = json.JSONDecoder()
 

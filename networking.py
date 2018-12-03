@@ -7,7 +7,7 @@ securingConnection = False
 BUFFER_SIZE = 4096
 inPort = outPort = None
 #TODO: set ip and port in GUI
-inIp = '127.0.0.1'
+inIp = socket.gethostbyname(socket.gethostname())
 outIp = '127.0.0.1'
 gui = None
 pubKey = None

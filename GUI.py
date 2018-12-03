@@ -80,8 +80,10 @@ class GUI(wx.Frame):
             self.sendMessage(self.msgField.GetValue())
             self.msgField.SetValue("")
         if (btn == self.connectButton):
-            net.outIp = self.ipField.GetValue()
-            net.outPort = int(self.portField.GetValue())
+            if (self.ipField.GetValue() != ""):
+                net.outIp = self.ipField.GetValue()
+            if (self.portField.GetValue() != ""):
+                net.outPort = int(self.portField.GetValue())
             if (main.connectToServer()):
                 #TODO: move this message to after the connection is secured
                 self.addInitMessage()
