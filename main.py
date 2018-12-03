@@ -293,9 +293,9 @@ def loadPreferences():
 
 if __name__=='__main__':
     preferences = loadPreferences()
-    net.inPort = int(sys.argv[1]) if (len(sys.argv) > 1) else 5004
+    net.inPort = int(sys.argv[1]) if (len(sys.argv) > 1) else 5005
     net.outPort = int(sys.argv[2]) if (len(sys.argv) > 2) else 5005
-    print("initializing with inPort {0} outPort {1}".format(net.inPort,net.outPort))
+    print("initializing with inPort {0} outPort {1}\nkDistPrefs: {2}\nencPrefs: {3}".format(net.inPort,net.outPort,net.kDistPrefList,net.encPrefList))
     #networked threads are essentially daemons bound to the GUI; once the window is closed or an event generates a critical error, all will die
     inConnThread = threading.Thread(target=awaitConnections, args=())
     inMsgThread = threading.Thread(target=awaitMessages, args=())

@@ -1,6 +1,7 @@
+import socket
+import wx.lib.scrolledpanel
 import main
 import networking as net
-import wx.lib.scrolledpanel
 
 #layouting constants
 #TODO: magic numbers
@@ -35,6 +36,12 @@ class GUI(wx.Frame):
         self.exitChatButton = wx.Button(menubarPanel,label="Exit Current Chat",pos=(99,0),size=(100,menubarHeight-2))
         self.exitChatButton.Bind(wx.EVT_BUTTON,self.OnClicked)
         menuSizer.Add(self.exitChatButton, 0, wx.ALL, 5 ) 
+        menuSizer.Add(wx.StaticText(menubarPanel,-1,"ip",pos=(210,5)))
+        self.ipField = wx.TextCtrl(menubarPanel,pos=(220,0),size=(100,menubarHeight-2))
+        menuSizer.Add(wx.StaticText(menubarPanel,-1,"port",pos=(330,5)))
+        self.portField = wx.TextCtrl(menubarPanel,pos=(352,0),size=(50,menubarHeight-2))
+        menuSizer.Add(self.ipField, 0, wx.ALL, 5 ) 
+        menuSizer.Add(wx.StaticText(menubarPanel,-1,"my ip/port: {0}/{1}".format(socket.gethostbyname(socket.gethostname()),net.inPort),pos=(412,5)))
         menubarPanel.SetSizer(menuSizer)
         
         #main window panel
@@ -73,6 +80,8 @@ class GUI(wx.Frame):
             self.sendMessage(self.msgField.GetValue())
             self.msgField.SetValue("")
         if (btn == self.connectButton):
+            net.outIp = self.ipField.GetValue()
+            net.outPort = int(self.portField.GetValue())
             if (main.connectToServer()):
                 #TODO: move this message to after the connection is secured
                 self.addInitMessage()
