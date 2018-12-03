@@ -1,6 +1,3 @@
-main:
--authentication (use HMAC + SHA1)
-
 optional:
 -remove magic numbers from GUI layouting
 -repeat failed connection attempts

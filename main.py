@@ -69,6 +69,9 @@ def decryptMsg(msg):
         print("Error: macs do not match! recv'd: {0}, calc'd: {1}".format(mac,myCalcdMac))
         if (disconnect()):
             net.gui.addCloseMessage()
+            return ""
+    else:
+        print("macs match! proceeding")
             
     if (net.encPref == "DES"):
         decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))

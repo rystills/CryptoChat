@@ -62,6 +62,15 @@ def asciiIntToStr(ai):
     return s
 
 """
+left rotate a 32-bit integer n b bits
+@param n: integer to rotate
+@param b: #bits by which to rotate n
+@returns: the integer n rotated by the #bits b
+"""
+def _left_rotate(n, b): 
+    return ((n << b) | (n >> (32 - b))) & 0xffffffff
+
+"""
 calculate the modular inverse of a and m
 @param a: first value for which we wish to calculate the modular inverse
 @param m: second value for which we wish to calculate the modular inverse
@@ -92,7 +101,6 @@ def main():
     b = strToAsciiInt(a)
     c = asciiIntToStr(b)
     print(a,b,c)
-    
 
 if __name__ == "__main__":
     main()
