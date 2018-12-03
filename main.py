@@ -44,7 +44,12 @@ def encryptMsg(msg):
         encrypted = encoder.encode([str(Paillier.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
     elif (net.encPref == "RSA"):
         #encrypt a JSON encoded list of encrypted segments of 20 characters each (converted to ascii)
-        encrypted = encoder.encode([str(rsa.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
+        encrypted = encoder.encode([str(rsa.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+20]))) for i in range(0,len(msg),20)])
+    elif (net.encPref == "AES"):
+        #encrypt a JSON encoded list of encrypted segments of 1 character each (converted to ascii)
+        AES.keyExp(net.privKey)
+        fullInt = str(cryptoutil.strToAsciiInt(msg))
+        encrypted = encoder.encode([str(AES.encrypt(int(fullInt[i:i+3]))) for i in range(0,len(fullInt),3)])
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -65,6 +70,10 @@ def decryptMsg(msg):
     elif (net.encPref == "RSA"):
         msg = decoder.decode(msg)
         decrypted = ''.join([cryptoutil.asciiIntToStr(rsa.decrypt(net.privKey,int(i))) for i in msg])
+    elif (net.encPref == "AES"):
+        AES.keyExp(net.privKey)
+        msg = decoder.decode(msg)
+        decrypted = ''.join([cryptoutil.asciiIntToStr(AES.decrypt(int(i))) for i in msg])
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
     return decrypted
 
@@ -218,7 +227,7 @@ def establishSecureChannel(amServer):
     elif (net.encPref == "BG"):
         net.privKey = BG.generateKey()
     elif (net.encPref == "AES"):
-        pass
+        net.privKey = random.randint(0,999999999999)
     elif (net.encPref == "RSA"):
         if (net.kDistPref != "RSA"):
             #if we are using RSA encryption but not RSA key distribution, generate an rsa priv/pub key pair from seeded random

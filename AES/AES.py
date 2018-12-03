@@ -90,7 +90,7 @@ if __name__ == '__main__':
     ciphertext = 0b0010010011101100
     keyExp(key)
 
-    new = 55555
+    new = 57755
     print(new)
     c = encrypt(new)
     print(c)

@@ -1,8 +1,4 @@
-ciphers:
--implement AES + incorporate
-
 main:
--test on separate machines (move away from localhost w/ hardcoded ip/port)
 -authentication (use HMAC + SHA1)
 
 optional:
