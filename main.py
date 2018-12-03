@@ -13,6 +13,7 @@ from AES import AES
 from RSA import rsa
 import GUI
 import networking as net
+import hashing
 
 """
 send a message on whichever connection is currently open
@@ -50,6 +51,8 @@ def encryptMsg(msg):
         AES.keyExp(net.privKey)
         fullInt = str(cryptoutil.strToAsciiInt(msg))
         encrypted = encoder.encode([str(AES.encrypt(int(fullInt[i:i+3]))) for i in range(0,len(fullInt),3)])
+    #add the mac to the encrypted message
+    encrypted = encoder.encode([encrypted,hashing.hmac(net.macKey, encrypted.encode("utf-8"))])
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -59,6 +62,14 @@ decrypt a msg using the current selected encryption algorithm
 @returns the decrypted message
 """ 
 def decryptMsg(msg):
+    #separate and test the mac
+    msg,mac = decoder.decode(msg)
+    myCalcdMac = hashing.hmac(net.macKey, msg.encode("utf-8"))
+    if (mac!=myCalcdMac):
+        print("Error: macs do not match! recv'd: {0}, calc'd: {1}".format(mac,myCalcdMac))
+        if (disconnect()):
+            net.gui.addCloseMessage()
+            
     if (net.encPref == "DES"):
         decrypted = cryptoutil.frombits(DES.decrypt(cryptoutil.tobits(msg),DES.defaultKey))
     elif (net.encPref == "BG"):
@@ -224,9 +235,9 @@ def establishSecureChannel(amServer):
         random.seed(net.privKey)
     #set mac auth key
     if (net.kDistPref == "RSA"):
-        net.macKey = random.randint(0,999999999999)
+        net.macKey = str(random.randint(0,999999999999)).encode("utf-8")
     else:
-        net.macKey = net.privKey
+        net.macKey = str(net.privKey).encode("utf-8")
 
     if (net.encPref == "Paillier"):
         net.privKey,net.pubKey = Paillier.generate_keypair()

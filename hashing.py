@@ -9,12 +9,13 @@ perform hmac with blockSize = 64 bytes; outputSize = 20 bytes
 @param msg: array of bytes to use as the message
 @param hFunc: hashing function (should ultimately be our own sha1 implementation)
 """
-def hmac(key,msg,hFunc): 
+def hmac(key,msg,hFunc=hashlib.sha1): 
     blockSize = 64
     #outputSize = 20
     #Keys longer than blockSize are shortened by hashing them
     if (len(key) > blockSize):
-        key = hFunc(key) #Key becomes outputSize bytes long
+        key = (key.decode("utf-8")[:blockSize]).encode("utf-8")
+        #key = hFunc(key) #Key becomes outputSize bytes long
        
     #Keys shorter than blockSize are padded to blockSize by padding with zeros on the right
     if (len(key) < blockSize):
