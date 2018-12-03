@@ -99,7 +99,13 @@ def connectToServer():
     if (net.outConn or net.inConn):
         print("Error: already engaged in a chat; please disconnect before establishing a new connection")
         return False
-    net.outSock.connect((net.outIp, net.outPort))
+    try:
+        net.outSock.settimeout(10)
+        net.outSock.connect((net.outIp, net.outPort))
+        net.outSock.settimeout(None)
+    except:
+        print("error: socket timed out. please check your ip/port and try again")
+        return False
     print("established outgoing connection")
     net.outConn = net.outSock
     secureConnection(False)
