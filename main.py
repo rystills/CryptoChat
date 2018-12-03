@@ -121,17 +121,17 @@ decide on preferences by picking the first match of PKC and Enc
 @returns; whether common preferences were found and selected (True) or no commonality was found (False)
 """
 def decidePreferences(inPKCList,inEncList):
-    net.PKCPref = None
+    net.kDistPref = None
     net.encPref = None
     for pref in inPKCList:
-        if (pref in net.PCKPrefList):
-            net.PKCPref = pref
+        if (pref in net.kDistPrefList):
+            net.kDistPref = pref
             break
     for pref in inEncList:
         if (pref in net.encPrefList):
             net.encPref = pref
             break
-    return net.PKCPref != None and net.encPref != None
+    return net.kDistPref != None and net.encPref != None
     
 """
 daemon thread who runs through securing the connection as the server (person who received connection request)
@@ -149,7 +149,7 @@ def secureConnectionServer():
             net.gui.addCloseMessage()
             net.securingConnection = False
             return False
-        sendMessage("Hello2 {0} {1}".format(net.PKCPref,net.encPref),False)
+        sendMessage("Hello2 {0} {1}".format(net.kDistPref,net.encPref),False)
         data = net.inConn.recv(net.BUFFER_SIZE).decode("utf-8")
         if (data[:9] != "Hello ACK"):
             disconnect()
@@ -170,7 +170,7 @@ daemon thread who runs through securing the connection as the client (person who
 def secureConnectionClient():
     try:
         #negotiation
-        sendMessage("Hello {0}".format(encoder.encode([net.PCKPrefList,net.encPrefList])),False)
+        sendMessage("Hello {0}".format(encoder.encode([net.kDistPrefList,net.encPrefList])),False)
         data = net.outConn.recv(net.BUFFER_SIZE).decode("utf-8")
         if (data[:6] != "Hello2"):
             disconnect()
@@ -178,7 +178,7 @@ def secureConnectionClient():
             net.securingConnection = False
             return False
         data = data.split(" ")
-        net.PKCPref = data[1]
+        net.kDistPref = data[1]
         net.encPref = data[2]
         sendMessage("Hello ACK",False)
         establishSecureChannel(False)
@@ -194,24 +194,35 @@ attempt to establish a secure channel; this should only be called during secureC
 @param amServer: whether I'm the server (True) or the client (False)
 """
 def establishSecureChannel(amServer):
-    print("~PREFERENCES~\n{0} {1}".format(net.PKCPref,net.encPref))
+    print("~PREFERENCES~\n{0} {1}".format(net.kDistPref,net.encPref))
     net.gui.addSecuringMessage()
     #establishing a secure channel
-    if (net.PKCPref == "RSA"):
+    if (net.kDistPref == "RSA"):
         net.pubKey,net.privKey = rsa.RSA(net.inConn if amServer else net.outConn,amServer)
-    elif (net.PKCPref == "NS_DH"):
+    elif (net.kDistPref == "NS_DH"):
         net.privKey = NS_DH.diffieHellman(net.inConn if amServer else net.outConn,amServer)
     #generate additional private / public key data required by the preferred encryption cipher
-    random.seed(net.privKey)
+    if (net.kDistPref == "RSA" and net.encPref != "RSA"):
+        #if we're using RSA for key distribution but not encryption, send one additional encrypted message to agree on a random seed for cipher key gen
+        if (amServer):
+            random.seed(net.privKey[1])
+            rsaSeed = random.randint(0,999999999999)
+            net.inConn.send(str(rsa.encrypt(net.pubKey,rsaSeed)).encode("utf-8"))
+            random.seed(rsaSeed)
+        else:
+            random.seed(rsa.decrypt(net.privKey,int(net.outConn.recv(net.BUFFER_SIZE).decode("utf-8"))))
+    else:   
+        random.seed(net.privKey)
     if (net.encPref == "Paillier"):
         net.privKey,net.pubKey = Paillier.generate_keypair()
     elif (net.encPref == "BG"):
         net.privKey = BG.generateKey()
     elif (net.encPref == "AES"):
         pass
-    elif (net.PKCPref == "RSA"):
-        #RSA has no additional requirements
-        pass
+    elif (net.encPref == "RSA"):
+        if (net.kDistPref != "RSA"):
+            #if we are using RSA encryption but not RSA key distribution, generate an rsa priv/pub key pair from seeded random
+            net.pubKey,net.privKey = rsa.RSA(0,0,True)
     
     print("{0} secured connection".format("server" if amServer else "client"))
     net.securingConnection = False
@@ -275,9 +286,9 @@ def loadPreferences():
     text = f.read()
     f.close()
     prefs = text.strip().split('\n')
-    PCKInd = prefs.index("key distribution:")
+    kDistInd = prefs.index("key distribution:")
     encInd = prefs.index("encryption:")
-    net.PCKPrefList = [i for i in prefs[PCKInd+1:encInd] if i!='']
+    net.kDistPrefList = [i for i in prefs[kDistInd+1:encInd] if i!='']
     net.encPrefList = [i for i in prefs[encInd+1:] if i!='']
 
 if __name__=='__main__':

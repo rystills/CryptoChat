@@ -13,7 +13,7 @@ gui = None
 pubKey = None
 privKey = None
 
-PCKPrefList = [] #preference for establishing a secure connection (distributing keys)
+kDistPrefList = [] #preference for establishing a secure connection (distributing keys)
 encPrefList = [] #preference for message encryption/decryption
-PKCPref = None
+kDistPref = None
 encPref = None 

@@ -66,7 +66,7 @@ def extended_euclid(totient,e):
 
 #Does RSA, and returns the public key pair (n,e) and private key pair (n,d)
 #As a pair themselves (pulbic_key, private_key)
-def RSA(conn, meFirst=True):
+def RSA(conn, meFirst=True,seeded=False):
     #P and Q are large primes
     p = primality.generatePrime(128)
     q = primality.generatePrime(128)
@@ -94,6 +94,8 @@ def RSA(conn, meFirst=True):
     #print("P=",p," Q=",q," n=",n," e=",e," lcm=",lcm2," d=",d)
     #print("Public key is :", public_key)
     #print("Private key is:", private_key)
+    if (seeded):
+        return (public_key,private_key)
     if (meFirst):
         oPub = decoder.decode(conn.recv(net.BUFFER_SIZE).decode("utf-8"))
         conn.send(encoder.encode(public_key).encode("utf-8"))
