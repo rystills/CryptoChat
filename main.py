@@ -211,8 +211,8 @@ def establishSecureChannel(amServer):
     elif (net.kDistPref == "NS_DH"):
         net.privKey = NS_DH.diffieHellman(net.inConn if amServer else net.outConn,amServer)
     #generate additional private / public key data required by the preferred encryption cipher
-    if (net.kDistPref == "RSA" and net.encPref != "RSA"):
-        #if we're using RSA for key distribution but not encryption, send one additional encrypted message to agree on a random seed for cipher key gen
+    if (net.kDistPref == "RSA"):
+        #if we're using RSA for key distribution, send one additional encrypted message to agree on a random seed for cipher key gen
         if (amServer):
             random.seed(net.privKey[1])
             rsaSeed = random.randint(0,999999999999)
@@ -222,6 +222,12 @@ def establishSecureChannel(amServer):
             random.seed(rsa.decrypt(net.privKey,int(net.outConn.recv(net.BUFFER_SIZE).decode("utf-8"))))
     else:
         random.seed(net.privKey)
+    #set mac auth key
+    if (net.kDistPref == "RSA"):
+        net.macKey = random.randint(0,999999999999)
+    else:
+        net.macKey = net.privKey
+
     if (net.encPref == "Paillier"):
         net.privKey,net.pubKey = Paillier.generate_keypair()
     elif (net.encPref == "BG"):
@@ -233,7 +239,7 @@ def establishSecureChannel(amServer):
             #if we are using RSA encryption but not RSA key distribution, generate an rsa priv/pub key pair from seeded random
             net.pubKey,net.privKey = rsa.RSA(0,0,True)
     
-    print("{0} secured connection with private key {1} public key {2}".format("server" if amServer else "client",net.pubKey,net.privKey))
+    print("{0} secured connection with private key {1} public key {2}".format("server" if amServer else "client",net.privKey,net.pubKey))
     net.securingConnection = False
     net.gui.addChatReadyMessage()
     

@@ -12,6 +12,7 @@ outIp = '127.0.0.1'
 gui = None
 pubKey = None
 privKey = None
+macKey = None
 
 kDistPrefList = [] #preference for establishing a secure connection (distributing keys)
 encPrefList = [] #preference for message encryption/decryption
