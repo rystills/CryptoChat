@@ -1,8 +1,8 @@
 ciphers:
--cleanup/comment RSA + incorporate
 -implement AES + incorporate
 
 main:
+-output some more debug info regarding generated keys
 -test on separate machines (move away from localhost w/ hardcoded ip/port)
 -authentication (use HMAC + SHA1)
 

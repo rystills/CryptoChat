@@ -42,6 +42,9 @@ def encryptMsg(msg):
     elif (net.encPref == "Paillier"):
         #encrypt a JSON encoded list of encrypted segments of 12 characters each (converted to ascii)
         encrypted = encoder.encode([str(Paillier.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
+    elif (net.encPref == "RSA"):
+        #encrypt a JSON encoded list of encrypted segments of 20 characters each (converted to ascii)
+        encrypted = encoder.encode([str(rsa.encrypt(net.pubKey,cryptoutil.strToAsciiInt(msg[i:i+12]))) for i in range(0,len(msg),12)])
     print("encrypting: {0} becomes: {1}".format(msg,encrypted))
     return encrypted
 
@@ -59,6 +62,9 @@ def decryptMsg(msg):
     elif (net.encPref == "Paillier"):
         msg = decoder.decode(msg)
         decrypted = ''.join([cryptoutil.asciiIntToStr(Paillier.decrypt(net.privKey,net.pubKey,int(i))) for i in msg])
+    elif (net.encPref == "RSA"):
+        msg = decoder.decode(msg)
+        decrypted = ''.join([cryptoutil.asciiIntToStr(rsa.decrypt(net.privKey,int(i))) for i in msg])
     print("decrypting: {0} becomes: {1}".format(msg,decrypted))
     return decrypted
 
@@ -192,7 +198,7 @@ def establishSecureChannel(amServer):
     net.gui.addSecuringMessage()
     #establishing a secure channel
     if (net.PKCPref == "RSA"):
-        pass
+        net.pubKey,net.privKey = rsa.RSA(net.inConn if amServer else net.outConn,amServer)
     elif (net.PKCPref == "NS_DH"):
         net.privKey = NS_DH.diffieHellman(net.inConn if amServer else net.outConn,amServer)
     #generate additional private / public key data required by the preferred encryption cipher
@@ -204,9 +210,10 @@ def establishSecureChannel(amServer):
     elif (net.encPref == "AES"):
         pass
     elif (net.PKCPref == "RSA"):
+        #RSA has no additional requirements
         pass
     
-    print("client secured connection")
+    print("{0} secured connection".format("server" if amServer else "client"))
     net.securingConnection = False
     net.gui.addChatReadyMessage()
     

@@ -1,4 +1,5 @@
 import random, sys, struct, time, subprocess
+import networking as net
 try:
     import sympy
 except:
@@ -11,8 +12,6 @@ sys.path.insert(0, '../DES/'); import DES
 x = sympy.Symbol('x')
 encoder = json.JSONEncoder()
 decoder = json.JSONDecoder()
-
-BUFFER_SIZE = 4096
 
 """
 map the polynomial res to GF(2)
@@ -115,11 +114,11 @@ def diffieHellman(conn, meFirst=True,p=13232376895198612407547930718267435757728
     a = random.randint(0,1000000000)
     A = pow(g,a,p)
     if (meFirst):
-        B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
+        B = int(conn.recv(net.BUFFER_SIZE).decode("utf-8"))
         conn.send(str(A).encode("utf-8"))
     else:
         conn.send(str(A).encode("utf-8"))
-        B = int(conn.recv(BUFFER_SIZE).decode("utf-8"))
+        B = int(conn.recv(net.BUFFER_SIZE).decode("utf-8"))
     s = pow(B,a,p)
     return s
     #if you want a binary list:
@@ -145,12 +144,12 @@ def diffieHellmanPoly(conn, meFirst = True):
     #exchange Ya and Yb
     #JSON won't encode a coefficient list from sympy for some reason, so manually reconstruct Yb
     if (meFirst):
-        Yb = conn.recv(BUFFER_SIZE).decode('utf-8')
+        Yb = conn.recv(net.BUFFER_SIZE).decode('utf-8')
         Yb = sympy.Poly.from_list([int(Yb[i]) for i in range(2,len(Yb)-2,3)],gens=x)
         conn.send(encoder.encode(Ya.all_coeffs().__str__()).encode("utf-8"))
     else:
         conn.send(encoder.encode(Ya.all_coeffs().__str__()).encode("utf-8"))
-        Yb = conn.recv(BUFFER_SIZE).decode('utf-8')
+        Yb = conn.recv(net.BUFFER_SIZE).decode('utf-8')
         Yb = sympy.Poly.from_list([int(Yb[i]) for i in range(2,len(Yb)-2,3)],gens=x)
         
     #apply modulo -> map to Galois field GF(2)

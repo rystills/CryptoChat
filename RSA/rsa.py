@@ -7,6 +7,8 @@ Created on Wed Nov 28 20:56:52 2018
 
 import math, random
 import primality
+import networking as net
+import json; encoder = json.JSONEncoder(); decoder = json.JSONDecoder()
 
 def coprime(x, y):
     return math.gcd(x, y) == 1
@@ -27,7 +29,7 @@ def encrypt(public_Key, m):
     
     n = public_Key[0]
     e = public_Key[1]
-    c = (m**e)%n
+    c = pow(m,e,n)
     return c
 
 #take in your private key and encrypted message, return original message
@@ -35,7 +37,7 @@ def decrypt(private_Key, c):
     
     n = private_Key[0]
     d = private_Key[1]
-    m = (c**d)%n
+    m = pow(c,d,n)
     return m
 
 def extended_euclid(totient,e):
@@ -64,10 +66,10 @@ def extended_euclid(totient,e):
 
 #Does RSA, and returns the public key pair (n,e) and private key pair (n,d)
 #As a pair themselves (pulbic_key, private_key)
-def RSA():
+def RSA(conn, meFirst=True):
     #P and Q are large primes
-    p = primality.generatePrime()
-    q = primality.generatePrime()
+    p = primality.generatePrime(128)
+    q = primality.generatePrime(128)
     n = p*q
 
     #Carmihcaels totient
@@ -89,10 +91,16 @@ def RSA():
 
     public_key = (n, e)
     private_key = (n, d)
-    print("P=",p," Q=",q," n=",n," e=",e," lcm=",lcm2," d=",d)
-    print("Public key is :", public_key)
-    print("Private key is:", private_key)
-    return(public_key, private_key)
+    #print("P=",p," Q=",q," n=",n," e=",e," lcm=",lcm2," d=",d)
+    #print("Public key is :", public_key)
+    #print("Private key is:", private_key)
+    if (meFirst):
+        oPub = decoder.decode(conn.recv(net.BUFFER_SIZE).decode("utf-8"))
+        conn.send(encoder.encode(public_key).encode("utf-8"))
+    else:
+        conn.send(encoder.encode(public_key).encode("utf-8"))
+        oPub = decoder.decode(conn.recv(net.BUFFER_SIZE).decode("utf-8"))
+    return(oPub, private_key)
 
 def main():
     RSA()
