@@ -2,7 +2,6 @@ ciphers:
 -implement AES + incorporate
 
 main:
--output some more debug info regarding generated keys
 -test on separate machines (move away from localhost w/ hardcoded ip/port)
 -authentication (use HMAC + SHA1)
 
@@ -10,6 +9,6 @@ misc:
 -remove magic numbers from GUI layouting
 
 optional:
--use try/catch blocks to deal with potential network troubles
+-repeat failed connection attempts
 -frozen executable (at least for windows, maybe for other platforms)
 -implement a KDC

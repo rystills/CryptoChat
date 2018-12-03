@@ -158,7 +158,7 @@ def secureConnectionServer():
             return False
         establishSecureChannel(True)
     except Exception as ex:
-        print("Error: failed to secure a connection: {0}".format(ex))
+        print("Error: failed to secure a connection, likely experienced network issues; please try again. errorMsg: {0}".format(ex))
         disconnect()
         net.gui.addCloseMessage()
         net.securingConnection = False
@@ -183,7 +183,7 @@ def secureConnectionClient():
         sendMessage("Hello ACK",False)
         establishSecureChannel(False)
     except Exception as ex:
-        print("Error: failed to secure a connection: {0}".format(ex))
+        print("Error: failed to secure a connection, likely experienced network issues; please try again. errorMsg: {0}".format(ex))
         disconnect()
         net.gui.addCloseMessage()
         net.securingConnection = False
@@ -211,7 +211,7 @@ def establishSecureChannel(amServer):
             random.seed(rsaSeed)
         else:
             random.seed(rsa.decrypt(net.privKey,int(net.outConn.recv(net.BUFFER_SIZE).decode("utf-8"))))
-    else:   
+    else:
         random.seed(net.privKey)
     if (net.encPref == "Paillier"):
         net.privKey,net.pubKey = Paillier.generate_keypair()
@@ -224,7 +224,7 @@ def establishSecureChannel(amServer):
             #if we are using RSA encryption but not RSA key distribution, generate an rsa priv/pub key pair from seeded random
             net.pubKey,net.privKey = rsa.RSA(0,0,True)
     
-    print("{0} secured connection".format("server" if amServer else "client"))
+    print("{0} secured connection with private key {1} public key {2}".format("server" if amServer else "client",net.pubKey,net.privKey))
     net.securingConnection = False
     net.gui.addChatReadyMessage()
     
