@@ -1,6 +1,8 @@
 
 import sys
 
+#Learned simple AES from https://www.rose-hulman.edu/~holden/Preprints/s-aes.pdf
+
 # S-Box
 sBox  = [0x9, 0x4, 0xa, 0xb, 0xd, 0x1, 0x8, 0x5,
          0x6, 0x2, 0x0, 0x3, 0xc, 0xe, 0xf, 0x7]
@@ -9,11 +11,9 @@ sBox  = [0x9, 0x4, 0xa, 0xb, 0xd, 0x1, 0x8, 0x5,
 sBoxI = [0xa, 0x5, 0x9, 0xb, 0x1, 0x7, 0x8, 0xf,
          0x6, 0x0, 0x2, 0x3, 0xc, 0x4, 0xd, 0xe]
 
-# Round keys: K0 = w0 + w1; K1 = w2 + w3; K2 = w4 + w5
-w = [None] * 6
+rounds = [None] * 6
 
-def mult(polyA, polyB):
-    """Multiply two polynomials in GF(2^4)/x^4 + x + 1"""
+def polyMultiply(polyA, polyB):
     poly = 0
     while polyB:
         if polyB & 0b1:
@@ -24,70 +24,68 @@ def mult(polyA, polyB):
         polyB >>= 1
     return poly & 0b1111
 
-def intToVec(n):
-    """Convert a 2-byte integer into a 4-element vector"""
-    return [n >> 12, (n >> 4) & 0xf, (n >> 8) & 0xf,  n & 0xf]
+def keyExp(key):
+    def smallSub(smol):
+        return sBox[smol >> 4] + (sBox[smol & 0x0f] << 4)
 
-def vecToInt(m):
-    """Convert a 4-element vector into 2-byte integer"""
-    return (m[0] << 12) + (m[2] << 8) + (m[1] << 4) + m[3]
+    x, y = 0b10000000, 0b00110000
+
+    rounds[0] = (key & 0xff00) >> 8
+    rounds[1] = key & 0x00ff
+    rounds[2] = rounds[0] ^ x ^ smallSub(rounds[1])
+    rounds[3] = rounds[2] ^ rounds[1]
+    rounds[4] = rounds[2] ^ y ^ smallSub(rounds[3])
+    rounds[5] = rounds[4] ^ rounds[3]
 
 def addKey(s1, s2):
-    """Add two keys in GF(2^4)"""
     return [i ^ j for i, j in zip(s1, s2)]
 
-def sub4NibList(sbox, s):
-    """Nibble substitution function"""
-    return [sbox[e] for e in s]
+def intToVec(num):
+    return [num >> 12, (num >> 4) & 0xf, (num >> 8) & 0xf,  num & 0xf]
 
-def shiftRow(s):
-    """ShiftRow function"""
-    return [s[0], s[1], s[3], s[2]]
+def vecToInt(vec):
+    return (vec[0] << 12) + (vec[2] << 8) + (vec[1] << 4) + vec[3]
 
-def keyExp(key):
-    """Generate the three round keys"""
-    def sub2Nib(b):
-        """Swap each nibble and substitute it using sBox"""
-        return sBox[b >> 4] + (sBox[b & 0x0f] << 4)
+def subBytes(sbox, s):
+    return [sbox[i] for i in s]
 
-    Rcon1, Rcon2 = 0b10000000, 0b00110000
-    w[0] = (key & 0xff00) >> 8
-    w[1] = key & 0x00ff
-    w[2] = w[0] ^ Rcon1 ^ sub2Nib(w[1])
-    w[3] = w[2] ^ w[1]
-    w[4] = w[2] ^ Rcon2 ^ sub2Nib(w[3])
-    w[5] = w[4] ^ w[3]
+def shiftRow(shift):
+    return [shift[0], shift[1], shift[3], shift[2]]
 
-def encrypt(ptext):
-    """Encrypt plaintext block"""
-    def mixCol(s):
-        return [s[0] ^ mult(4, s[2]), s[1] ^ mult(4, s[3]),
-                s[2] ^ mult(4, s[0]), s[3] ^ mult(4, s[1])]
+def encrypt(plainText):
+    def mixColumn(s):
+        return [s[0] ^ polyMultiply(4, s[2]), s[1] ^ polyMultiply(4, s[3]),
+                s[2] ^ polyMultiply(4, s[0]), s[3] ^ polyMultiply(4, s[1])]
 
-    state = intToVec(((w[0] << 8) + w[1]) ^ ptext)
-    state = mixCol(shiftRow(sub4NibList(sBox, state)))
-    state = addKey(intToVec((w[2] << 8) + w[3]), state)
-    state = shiftRow(sub4NibList(sBox, state))
-    return vecToInt(addKey(intToVec((w[4] << 8) + w[5]), state))
+    step = intToVec(((rounds[0] << 8) + rounds[1]) ^ plainText)
 
-def decrypt(ctext):
-    """Decrypt ciphertext block"""
-    def iMixCol(s):
-        return [mult(9, s[0]) ^ mult(2, s[2]), mult(9, s[1]) ^ mult(2, s[3]),
-                mult(9, s[2]) ^ mult(2, s[0]), mult(9, s[3]) ^ mult(2, s[1])]
+    step = mixColumn(shiftRow(subBytes(sBox, step)))
 
-    state = intToVec(((w[4] << 8) + w[5]) ^ ctext)
-    state = sub4NibList(sBoxI, shiftRow(state))
-    state = iMixCol(addKey(intToVec((w[2] << 8) + w[3]), state))
-    state = sub4NibList(sBoxI, shiftRow(state))
-    return vecToInt(addKey(intToVec((w[0] << 8) + w[1]), state))
+    step = addKey(intToVec((rounds[2] << 8) + rounds[3]), step)
+
+    step = shiftRow(subBytes(sBox, step))
+
+    return vecToInt(addKey(intToVec((rounds[4] << 8) + rounds[5]), step))
+
+def decrypt(crypto):
+    def imixColumn(s):
+        return [polyMultiply(9, s[0]) ^ polyMultiply(2, s[2]), polyMultiply(9, s[1]) ^ polyMultiply(2, s[3]),
+                polyMultiply(9, s[2]) ^ polyMultiply(2, s[0]), polyMultiply(9, s[3]) ^ polyMultiply(2, s[1])]
+
+    step = intToVec(((rounds[4] << 8) + rounds[5]) ^ crypto)
+
+    step = subBytes(sBoxI, shiftRow(step))
+
+    step = imixColumn(addKey(intToVec((rounds[2] << 8) + rounds[3]), step))
+
+    step = subBytes(sBoxI, shiftRow(step))
+
+    return vecToInt(addKey(intToVec((rounds[0] << 8) + rounds[1]), step))
 
 if __name__ == '__main__':
 
-
-    plaintext = 0b1101011100101000
-    key = 0b0100101011110101
-    ciphertext = 0b0010010011101100
+    #test to make sure AES works
+    key = 110100101011110101
     keyExp(key)
 
     new = 57755
@@ -96,17 +94,3 @@ if __name__ == '__main__':
     print(c)
     d = decrypt(c)
     print(d)
-
-    try:
-        assert encrypt(plaintext) == ciphertext
-    except AssertionError:
-        print("Encryption error")
-        print(encrypt(plaintext), ciphertext)
-        sys.exit(1)
-    try:
-        assert decrypt(ciphertext) == plaintext
-    except AssertionError:
-        print("Decryption error")
-        print(decrypt(ciphertext), plaintext)
-        sys.exit(1)
-    print("Test ok!")
