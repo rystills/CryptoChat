@@ -16,3 +16,6 @@ For easy local testing, run spawnTestInstances and don't put anything in the ip 
   
 ## Editing Preferences:  
 To edit your key distribution / cipher preferences, simply open preferences.cfg, and re-order or remove the values underneath "key distribution:" and "encryption:"
+  
+## Preview:  
+<img src="screenshot.png" width="640" height="480">  
